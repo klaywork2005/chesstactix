@@ -1,9 +1,14 @@
 import './assets/main.css'
 import Background from './components/background'
+import Header from './components/header'
+
 
 const App = () => {
   return (
-  <Background />
+    <div>
+      <Background />
+      <Header />
+    </div>
   )
 }
 
