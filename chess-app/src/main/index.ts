@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/chess-logo.jpg?asset'
+import icon from '../../resources/icon.png?asset'
 
 function createWindow(): void {
   // Create the browser window.
@@ -12,7 +12,7 @@ function createWindow(): void {
     minHeight: 700,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -43,6 +43,12 @@ function createWindow(): void {
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
+
+  // Packaged builds pick up build/icon.icns automatically, but the dev-mode
+  // dock icon doesn't -- set it explicitly so the app icon is uniform in dev too.
+  if (process.platform === 'darwin') {
+    app.dock?.setIcon(icon)
+  }
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
