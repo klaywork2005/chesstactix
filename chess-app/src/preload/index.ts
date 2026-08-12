@@ -1,8 +1,13 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
+type Difficulty = 'easy' | 'medium' | 'hard'
+
 // Custom APIs for renderer
-const api = {}
+const api = {
+  getBestMove: (fen: string, difficulty: Difficulty): Promise<string | null> =>
+    ipcRenderer.invoke('chess:getBestMove', fen, difficulty)
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

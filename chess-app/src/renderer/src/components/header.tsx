@@ -1,12 +1,14 @@
 import chessLogo from '../assets/chesstactix-logo.svg'
 
-const Header = () => {
+type HeaderProps = { onPlayClick: () => void }
+
+const Header = ({ onPlayClick }: HeaderProps) => {
   return (
-    <header className="sticky h-28 top-0 z-50 bg-linear-to-b from-mauve-700 via-mauve-800/90 to-neutral-800 text-amber-200">
+    <header className="sticky h-24 top-0 z-50 bg-[rgb(15,15,15)] border-b-1 border-neutral-700 text-amber-200">
       <div className="mx-auto flex items-center justify-between">
         <div className="flex justify-between items-center">
           <div
-            className="h-24 w-24 bg-amber-200 hover:bg-mauve-100 cursor-pointer transition-colors"
+            className="h-24 w-24 bg-amber-200 hover:bg-red-100 cursor-pointer transition-colors"
             style={{
               maskImage: `url(${chessLogo})`,
               maskRepeat: 'no-repeat',
@@ -24,13 +26,22 @@ const Header = () => {
         </div>
 
         <nav className="flex gap-6 px-8">
-          <a href="#" className="hover:text-mauve-300 text-lg">
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault()
+              onPlayClick()
+            }}
+            className="select-none hover:text-mauve-300 text-xl"
+          >
             Play
           </a>
-          <a href="#" className="hover:text-mauve-300 text-lg">
+          
+          <a href="#" className="select-none hover:text-mauve-300 text-xl">
             Analyze
           </a>
-          <a href="#" className="hover:text-mauve-300 text-lg">
+          
+          <a href="#" className="select-none hover:text-mauve-300 text-xl">
             Contact
           </a>
         </nav>

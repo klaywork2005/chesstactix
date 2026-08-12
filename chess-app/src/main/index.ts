@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { getBestMove } from './stockfish'
 
 function createWindow(): void {
   // Create the browser window.
@@ -59,6 +60,12 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // Runs the Stockfish engine (Node-only, hence main process) and hands the
+  // resulting move back to the renderer's ChessGame component.
+  ipcMain.handle('chess:getBestMove', (_event, fen: string, difficulty: 'easy' | 'medium' | 'hard') =>
+    getBestMove(fen, difficulty)
+  )
 
   createWindow()
 
