@@ -88,3 +88,82 @@ export function getBestMove(fen: string, difficulty: Difficulty): Promise<string
   queue = result.catch(() => undefined)
   return result
 }
+
+// One candidate line from a MultiPV search. `scoreCp`/`scoreMate` are
+// mutually exclusive and relative to the side to move (positive = good for
+// whoever's turn it is), matching UCI's own convention.
+export type EngineLine = {
+  rank: number
+  depth: number
+  scoreCp: number | null
+  scoreMate: number | null
+  pv: string[]
+}
+
+async function requestAnalysis(
+  fen: string,
+  multiPv: number,
+  depth: number
+): Promise<EngineLine[]> {
+  const engine = await getEngine()
+  const lines = new Map<number, EngineLine>()
+
+  const searchDone = new Promise<void>((resolve) => {
+    engine.listener = (line: string) => {
+      if (line.startsWith('bestmove')) {
+        engine.listener = null
+        resolve()
+        return
+      }
+
+      // Only "info ... pv ..." lines carry a candidate line; progress-only
+      // lines (nps, hashfull, ...) don't and should just be ignored.
+      const pvMatch = /\bpv (.+)$/.exec(line)
+      if (!line.startsWith('info') || !pvMatch) {
+        return
+      }
+
+      const multipvMatch = /\bmultipv (\d+)/.exec(line)
+      const depthMatch = /\bdepth (\d+)/.exec(line)
+      const cpMatch = /\bscore cp (-?\d+)/.exec(line)
+      const mateMatch = /\bscore mate (-?\d+)/.exec(line)
+
+      if (!multipvMatch || !depthMatch) {
+        return
+      }
+
+      lines.set(Number(multipvMatch[1]), {
+        rank: Number(multipvMatch[1]),
+        depth: Number(depthMatch[1]),
+        scoreCp: cpMatch ? Number(cpMatch[1]) : null,
+        scoreMate: mateMatch ? Number(mateMatch[1]) : null,
+        pv: pvMatch[1].trim().split(' ')
+      })
+    }
+  })
+
+  // Reusing one engine instance means MultiPV is sticky across calls -- set
+  // it explicitly every time rather than assuming the previous value.
+  engine.sendCommand(`setoption name MultiPV value ${multiPv}`)
+  engine.sendCommand(`position fen ${fen}`)
+  engine.sendCommand(`go depth ${depth}`)
+
+  await searchDone
+
+  // Reset MultiPV to 1 afterwards so getBestMove() (used for the AI
+  // opponent) isn't left paying for a multi-line search it never asked for.
+  engine.sendCommand('setoption name MultiPV value 1')
+
+  return Array.from(lines.values()).sort((a, b) => a.rank - b.rank)
+}
+
+// Returns up to `multiPv` candidate lines for the position, best first.
+export function analyzePosition(
+  fen: string,
+  multiPv: number,
+  depth: number
+): Promise<EngineLine[]> {
+  const result = queue.then(() => requestAnalysis(fen, multiPv, depth))
+  queue = result.catch(() => undefined)
+  return result
+}

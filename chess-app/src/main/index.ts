@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { getBestMove } from './stockfish'
+import { getBestMove, analyzePosition } from './stockfish'
 
 function createWindow(): void {
   // Create the browser window.
@@ -65,6 +65,12 @@ app.whenReady().then(() => {
   // resulting move back to the renderer's ChessGame component.
   ipcMain.handle('chess:getBestMove', (_event, fen: string, difficulty: 'easy' | 'medium' | 'hard') =>
     getBestMove(fen, difficulty)
+  )
+
+  // Runs a MultiPV search for the Analysis page -- returns several ranked
+  // candidate lines instead of just one move.
+  ipcMain.handle('chess:analyzePosition', (_event, fen: string, multiPv: number, depth: number) =>
+    analyzePosition(fen, multiPv, depth)
   )
 
   createWindow()

@@ -9,3 +9,12 @@ export type AiOptions = {
   difficulty: Difficulty
   playerColor: PlayerColor
 }
+
+// Mirrors the EngineLine type in src/main/stockfish.ts and src/preload/index.d.ts.
+export type EngineLine = {
+  rank: number
+  depth: number
+  scoreCp: number | null
+  scoreMate: number | null
+  pv: string[]
+}

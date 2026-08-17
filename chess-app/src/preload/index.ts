@@ -3,10 +3,20 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 type Difficulty = 'easy' | 'medium' | 'hard'
 
+type EngineLine = {
+  rank: number
+  depth: number
+  scoreCp: number | null
+  scoreMate: number | null
+  pv: string[]
+}
+
 // Custom APIs for renderer
 const api = {
   getBestMove: (fen: string, difficulty: Difficulty): Promise<string | null> =>
-    ipcRenderer.invoke('chess:getBestMove', fen, difficulty)
+    ipcRenderer.invoke('chess:getBestMove', fen, difficulty),
+  analyzePosition: (fen: string, multiPv: number, depth: number): Promise<EngineLine[]> =>
+    ipcRenderer.invoke('chess:analyzePosition', fen, multiPv, depth)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

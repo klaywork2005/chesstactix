@@ -12,7 +12,9 @@
       "Bash(cp __TRACKED_VAR__/icon-1024.png __TRACKED_VAR__/resources/icon.png)",
       "Bash(cp __TRACKED_VAR__/icon-1024.png __TRACKED_VAR__/build/icon.png)",
       "Bash(cp __TRACKED_VAR__/icon.ico __TRACKED_VAR__/build/icon.ico)",
-      "Bash(npx prettier *)"
+      "Bash(npx prettier *)",
+      "Bash(node -e \"console.log\\(require\\('fs'\\).existsSync\\('node_modules/tailwind-scrollbar-hide'\\)\\)\")",
+      "Bash(npx eslint *)"
     ]
   }
 }

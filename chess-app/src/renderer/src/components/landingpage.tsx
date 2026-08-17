@@ -3,7 +3,10 @@ type Feature = {
   title: string
   description: string
 }
-
+type LandingPageProps = { 
+  onLandingPagePlayButtonClick: () => void
+  
+}
 const FEATURES: Feature[] = [
   {
     icon: 'fa-solid fa-chess-king',
@@ -27,7 +30,7 @@ const FEATURES: Feature[] = [
     icon: 'fa-solid fa-lock',
     title: '100% Offline & Private',
     description:
-      'Every engine call and analysis run happens locally on your machine. No accounts, no data ever leaves your computer.'
+      'Every engine call and analysis run happens locally on your machine. No accounts needed, and no data ever leaves your computer.'
   },
   {
     icon: 'fa-solid fa-display',
@@ -78,7 +81,7 @@ const STEPS: Step[] = [
   }
 ]
 
-const LandingPage = () => {
+const LandingPage = ({onLandingPagePlayButtonClick}: LandingPageProps) => {
   return (
     <div className="flex flex-col items-center w-[85vw] gap-16 pb-16">
       <section className="flex flex-col items-center w-full gap-8">
@@ -113,16 +116,18 @@ const LandingPage = () => {
         </div>
       </section>
 
-      <section className="flex flex-col items-center gap-3 w-full rounded-2xl border border-amber-400/30 bg-gradient-to-b from-amber-400/10 to-transparent px-8 py-12 text-center">
-        <i className="fa-solid fa-chess-knight text-amber-400 text-3xl" />
-        <h2 className="text-amber-100 font-bold text-3xl">Try ChessTactix In a Game Against Stockfish</h2>
+      <section className="flex flex-col items-center w-full rounded-2xl border border-amber-400/30 bg-gradient-to-b from-amber-400/10 to-transparent px-8 py-12 text-center">
+        <i className="fa-solid fa-chess-knight text-amber-400 text-3xl mb-2" />
+        <h2 className="text-amber-100 font-bold text-3xl mb-4">Try ChessTactix In a Game Against Stockfish</h2>
         <p className="text-amber-100/70 text-base max-w-xl">
-          Jump straight into a game pick your side and difficulty, no setup required.
+          Jump straight into a game -
         </p>
         <p className="text-amber-100/70 text-base max-w-xl">
           Pick your side and difficulty, no setup required.
         </p>
-        <button className="cursor-pointer active:bg-amber-700 hover:bg-amber-500 text-amber-900 bg-amber-400 px-8 py-3 mt-3 rounded-lg border border-amber-200 text-lg font-bold">
+        <button 
+        onClick={onLandingPagePlayButtonClick} 
+        className="cursor-pointer active:bg-amber-700 hover:bg-amber-500 text-amber-900 bg-amber-400 px-8 py-3 mt-3 rounded-lg border border-amber-200 text-lg font-bold">
           Play Now
         </button>
       </section>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Chess, type Square } from 'chess.js'
-import { Chessboard, type SquareHandlerArgs } from 'react-chessboard'
+import { Chessboard, type PieceDropHandlerArgs, type SquareHandlerArgs } from 'react-chessboard'
 import type { AiOptions } from '../types'
 
 type ChessGameProps = {
@@ -17,6 +17,10 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps) => {
   const [chessPosition, setChessPosition] = useState(chessGame.fen())
   const [moveFrom, setMoveFrom] = useState('')
   const [optionSquares, setOptionSquares] = useState<Record<string, React.CSSProperties>>({})
+  const [allowDragging, setAllowDragging] = useState(true);
+  const [allowDrawingArrows, setAllowDrawingArrows] = useState(true);
+  const [opacity, setOpacity] = useState(0);
+  const [blur, setBlur] = useState(0);
 
   // whether we're waiting on the Stockfish engine (main process) for a move
   const [isThinking, setIsThinking] = useState(false)
@@ -86,23 +90,61 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps) => {
     for (const move of moves) {
       const targetPiece = chessGame.get(move.to as Square)
       const sourcePiece = chessGame.get(square)
+      const isCapture = targetPiece && targetPiece.color !== sourcePiece?.color
 
-      newSquares[move.to] = {
-        background:
-          targetPiece && targetPiece.color !== sourcePiece?.color
-            ? 'radial-gradient(circle, rgba(0,0,0,.1) 85%, transparent 85%)' // larger circle for capturing
-            : 'radial-gradient(circle, rgba(0,0,0,.1) 25%, transparent 25%)', // smaller circle for moving
-        borderRadius: '50%'
-      }
+      newSquares[move.to] = isCapture
+        ? {
+            // opaque ring around the edge — a piece sits here, so we outline it
+            // instead of covering it. boxShadow paints on top of the square, so
+            // it never blends with the square's own light/dark color underneath.
+            boxShadow: 'inset 0 0 0 4px rgba(220, 0, 0, 1)'
+          }
+        : {
+            // opaque dot in the center — the target square is empty for a quiet
+            // move, so filling it doesn't hide anything. Alpha is 1 (fully
+            // opaque) so the dot looks identical on light and dark squares alike.
+            background: 'radial-gradient(circle, rgba(121, 103, 0, 1) 25%, transparent 25%)'
+          }
     }
 
-    // set the square clicked to move from to yellow
+    // set the square clicked to move from — same opaque-ring trick, so the
+    // selected piece stays fully visible instead of being tinted yellow.
     newSquares[square] = {
-      background: 'rgba(255, 255, 0, 0.4)'
+      boxShadow: 'inset 0 0 0 4px rgb(250, 204, 21)'
     }
 
     // set the option squares
     setOptionSquares(newSquares)
+
+    return true
+  }
+
+  function onPieceDrop({ sourceSquare, targetSquare }: PieceDropHandlerArgs): boolean {
+    // ignore drops while the engine is thinking, or if dropped off the board
+    if (isThinking || !targetSquare) {
+      return false
+    }
+
+    // attempt the move; reject the drop (piece snaps back) if illegal
+    try {
+      chessGame.move({
+        from: sourceSquare,
+        to: targetSquare,
+        promotion: 'q'
+      })
+    } catch {
+      return false
+    }
+
+    // update the position state
+    setChessPosition(chessGame.fen())
+
+    // clear moveFrom and optionSquares, in case a square was mid-selected via click
+    setMoveFrom('')
+    setOptionSquares({})
+
+    // let the AI respond after a short delay
+    setTimeout(makeAiMove, 500)
 
     return true
   }
@@ -166,23 +208,32 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps) => {
 
   // set the chessboard options
   const chessboardOptions = {
-    allowDragging: !isThinking,
     boardOrientation: aiOptions.playerColor,
-    onSquareClick,
     position: chessPosition,
     squareStyles: optionSquares,
+    allowDrawingArrows,
+    allowDragging,
+    dropSquareStyle: {
+        boxShadow: 'inset 0px 0px 0px 4px orange'
+      },
+      draggingPieceGhostStyle: {
+        opacity,
+        filter: `blur(${blur}px)`
+      },
+    onSquareClick,
+    onPieceDrop,
     id: 'play-vs-ai'
   }
 
   // render the chessboard inside a centered Tailwind container
   return (
     <div className="flex w-full max-w-xl flex-col items-center gap-3">
-      <div className="flex w-full items-center justify-between text-amber-100">
-        <span className="text-sm">{isThinking ? 'Stockfish is thinking…' : 'Your move'}</span>
+      <div className="flex w-full items-center justify-between text-amber-200">
+        <span className="text-sm select-none">{isThinking ? 'Stockfish is thinking…' : 'Your move'}</span>
         <button
           type="button"
           onClick={onNewGame}
-          className="text-sm underline hover:text-amber-300"
+          className="text-sm underline hover:text-amber-400"
         >
           New Game
         </button>

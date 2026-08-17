@@ -1,2 +1,25 @@
 @import 'tailwindcss';
 @import '@fortawesome/fontawesome-free/css/all.min.css';
+
+/* Reusable utility for hiding a scrolling element's scrollbar without disabling scroll.
+   Usage: className="overflow-y-auto scrollbar-hide" */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* The actual page scroll happens on the document, not on any inner div,
+   so it needs to be hidden here directly rather than via the utility above. */
+html,
+body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
