@@ -1,43 +1,95 @@
-appId: com.electron.app
-productName: chess-app
+appId: com.klaygarcia.chesstactix
+productName: ChessTactix
+copyright: Copyright © 2026 Klay Garcia
+
 directories:
   buildResources: build
+  output: dist
+
 files:
+  # '**/*' is electron-builder's default, but it only applies it when every
+  # pattern here is a negation -- the stockfish re-include below is not, so
+  # the default has to be stated explicitly or nothing gets packaged at all.
+  - '**/*'
   - '!**/.vscode/*'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
-  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,tsconfig.web.tsbuildinfo}'
+  # The stockfish package ships every build of the engine it offers -- five
+  # of them, 240 MB in total, plus symlinks to the largest pair. The app only
+  # ever asks for 'lite-single' (see src/main/stockfish.ts), so everything
+  # else is dropped here rather than shipped to users who can't reach it.
+  # Patterns are last-match-wins, so the re-include has to follow the drop.
+  - '!node_modules/stockfish/bin/**'
+  - 'node_modules/stockfish/bin/*-lite-single.{js,wasm}'
+
+# Kept out of the asar archive: the engine's .wasm is loaded from a real file
+# path at runtime, and app icons are read by the OS rather than by us.
 asarUnpack:
   - resources/**
+  - node_modules/stockfish/bin/**
+
 win:
-  executableName: chess-app
+  executableName: ChessTactix
+  target:
+    - target: nsis
+      arch: [x64]
+
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
-  shortcutName: ${productName}
-  uninstallDisplayName: ${productName}
+  # a normal wizard rather than a silent one-click installer, so the install
+  # location is the user's choice and the uninstaller is visible
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  # per-user install: no UAC prompt, and nothing needs admin rights
+  perMachine: false
   createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName} ${version}
+  artifactName: ${productName}-${version}-setup.${ext}
+
 mac:
+  category: public.app-category.board-games
   entitlementsInherit: build/entitlements.mac.plist
+  notarize: false
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-  notarize: false
+
 dmg:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
 linux:
   target:
     - AppImage
-    - snap
     - deb
-  maintainer: electronjs.org
-  category: Utility
+  maintainer: Klay Garcia
+  category: Game
+  synopsis: Play and analyze chess against Stockfish
+  desktop:
+    entry:
+      Keywords: chess;board game;stockfish;
+
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+deb:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+# no native modules in this project -- the engine is WebAssembly -- so there
+# is nothing to rebuild against Electron's headers
 npmRebuild: false
+
 publish:
-  provider: generic
-  url: https://example.com/auto-updates
+  provider: github
+  owner: klaywork2005
+  repo: chesstactix

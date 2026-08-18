@@ -1,0 +1,60 @@
+name: Release
+
+# Installers are built on the OS they target: a macOS .dmg can only be
+# produced (and signed) on macOS, and the Linux targets expect Linux tooling.
+# Pushing a v* tag builds all three and uploads them to the GitHub release.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: chess-app
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: build:win
+          - os: macos-latest
+            script: build:mac
+          - os: ubuntu-latest
+            script: build:linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: chess-app/package-lock.json
+
+      - run: npm ci
+
+      # Tag pushes publish to the GitHub release; manual runs only produce
+      # artifacts, so the workflow can be exercised without cutting one.
+      - run: npm run ${{ matrix.script }} -- --publish ${{ startsWith(github.ref, 'refs/tags/v') && 'always' || 'never' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # no signing certificates in CI -- without this, macOS builds fail
+          # looking for an identity instead of producing an unsigned app
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            chess-app/dist/*.exe
+            chess-app/dist/*.dmg
+            chess-app/dist/*.zip
+            chess-app/dist/*.AppImage
+            chess-app/dist/*.deb
