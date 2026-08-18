@@ -23,3 +23,59 @@ html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   display: none;
 }
+
+/* Shared range-input look, used by the engine-strength slider
+   (components/gamesetup.tsx) and the board-size slider
+   (components/boardsizeslider.tsx). A native range input carries its own
+   platform look that nothing else here shares, so the track and thumb are
+   drawn from scratch. The filled portion is a hard-stop gradient driven by
+   the --progress custom property the component sets.
+
+   Only the ::-webkit- pseudo-elements are defined: the renderer is Chromium,
+   so the Firefox equivalents would be dead rules. */
+.app-slider {
+  --thumb-size: 0.875rem;
+  -webkit-appearance: none;
+  appearance: none;
+  height: var(--thumb-size);
+  background: transparent;
+  cursor: pointer;
+}
+
+/* the compact variant that sits inside the board's control bar */
+.app-slider-sm {
+  --thumb-size: 0.625rem;
+}
+
+.app-slider::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--color-amber-400) 0%,
+    var(--color-amber-400) var(--progress),
+    var(--color-neutral-800) var(--progress),
+    var(--color-neutral-800) 100%
+  );
+}
+
+.app-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  /* centers the thumb on the 2px track */
+  margin-top: calc((2px - var(--thumb-size)) / 2);
+  border-radius: 9999px;
+  background: var(--color-amber-400);
+  transition: transform 100ms;
+}
+
+.app-slider:hover::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+.app-slider:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-amber-200);
+  outline-offset: 2px;
+}

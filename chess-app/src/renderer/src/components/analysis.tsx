@@ -6,11 +6,16 @@ import {
   type PieceDropHandlerArgs,
   type SquareHandlerArgs
 } from 'react-chessboard'
+import { useChessHistory } from '../hooks/useChessHistory'
+import { useBoardScale } from '../hooks/useBoardScale'
+import BoardLayout from './boardlayout'
+import BoardControls from './boardcontrols'
+import MoveHistory from './movehistory'
+import EnginePanel from './enginepanel'
+import PromotionDialog, { type PromotionPiece } from './promotiondialog'
+import { comparableScore } from '../utils/engine'
+import { gameOverLabel } from '../utils/gamestatus'
 import type { EngineLine } from '../types'
-
-type AnalysisProps = {
-  onBack: () => void
-}
 
 // How many candidate lines to ask the engine for, and how deep to search
 // them -- there's no opponent waiting on this move, so it can afford to
@@ -23,152 +28,106 @@ const ANALYSIS_DEPTH = 16
 // option, not a second genuinely "good" one.
 const GOOD_ENOUGH_MARGIN_CP = 50
 
-// Arrow (and line-marker) color per rank, best line first. Green for the
-// top choice is the near-universal "best move" convention in chess UIs;
-// the red for third reuses the same red already used for the capture ring
-// in chessgame.tsx, so the two boards read as one color language.
-const RANK_COLORS = ['rgb(0, 158, 71)', 'rgb(217, 119, 6)', 'rgba(220, 0, 0, 1)']
+// Arrow (and line-marker) color per rank, best line first. Green for the top
+// choice is the near-universal "best move" convention in chess UIs; the ranks
+// below it step down in saturation so the eye reads the ordering without
+// having to consult the panel.
+const RANK_COLORS = ['rgb(34, 197, 94)', 'rgb(56, 189, 248)', 'rgb(148, 163, 184)']
 
-// How many plies of a line to convert to SAN for display.
-const SAN_PLY_LIMIT = 12
+const Analysis = (): React.JSX.Element => {
+  // linear position history + a viewIndex pointer into it (see the hook for
+  // the full undo/redo model). Analysis has no async opponent racing the
+  // board, so navigation is always enabled and making a move while behind
+  // the live head just branches from there.
+  const {
+    position,
+    isAtLive,
+    canGoBack,
+    canGoForward,
+    goBack,
+    goForward,
+    viewIndex,
+    goToIndex,
+    pushMove,
+    reset,
+    moveHistory
+  } = useChessHistory()
 
-// Collapses a line's score onto one comparable number, regardless of
-// whether the engine reported it as centipawns or "mate in N": mate scores
-// are pushed far outside the normal centipawn range so a forced mate always
-// outranks a merely-good centipawn evaluation, while still ordering closer
-// mates ahead of longer ones.
-function comparableScore(line: EngineLine): number {
-  if (line.scoreMate !== null) {
-    const sign = line.scoreMate > 0 ? 1 : -1
-    return sign * (100000 - Math.abs(line.scoreMate))
-  }
-  return line.scoreCp ?? 0
-}
+  // a disposable, render-safe instance for querying the displayed position
+  // (legal moves, turn, game-over status, ...) -- built fresh from
+  // `position` each render rather than held onto, since it's only ever
+  // read from, never mutated. Moves are applied via pushMove() instead.
+  const chessGame = new Chess(position)
 
-// Formats a line's evaluation from White's perspective (positive = good for
-// White), the standard chess convention -- UCI itself reports scores
-// relative to whoever's turn it is, so this flips the sign on Black's turn.
-function formatEvaluation(line: EngineLine | undefined, sideToMove: 'w' | 'b'): string {
-  if (!line) {
-    return '—'
-  }
+  // how large to draw the board, driven by the slider in the control bar
+  const [boardScale, setBoardScale] = useBoardScale()
 
-  const perspective = sideToMove === 'w' ? 1 : -1
-
-  if (line.scoreMate !== null) {
-    const mateInWhitePerspective = perspective * line.scoreMate
-    return mateInWhitePerspective >= 0
-      ? `+M${mateInWhitePerspective}`
-      : `-M${Math.abs(mateInWhitePerspective)}`
-  }
-
-  const pawns = (perspective * (line.scoreCp ?? 0)) / 100
-  return `${pawns > 0 ? '+' : ''}${pawns.toFixed(2)}`
-}
-
-// Replays a UCI move list (e.g. ["e2e4", "e7e5", ...]) from `fen` and
-// renders it as standard algebraic notation with move numbers, e.g.
-// "12. e4 e5 13. Nf3 ..." (or "12... Nf6 13. Bg5 ..." if the line starts
-// with Black to move).
-function pvToSan(fen: string, pv: string[]): string {
-  const sim = new Chess(fen)
-  const startTurn = sim.turn()
-  const startFullMove = Number(fen.split(' ')[5]) || 1
-
-  const sanMoves: string[] = []
-  for (const uciMove of pv.slice(0, SAN_PLY_LIMIT)) {
-    try {
-      const move = sim.move({
-        from: uciMove.slice(0, 2),
-        to: uciMove.slice(2, 4),
-        promotion: (uciMove.length > 4 ? uciMove.slice(4, 5) : undefined) as
-          | 'q'
-          | 'r'
-          | 'b'
-          | 'n'
-          | undefined
-      })
-      sanMoves.push(move.san)
-    } catch {
-      break
-    }
-  }
-
-  if (sanMoves.length === 0) {
-    return '—'
-  }
-
-  const parts: string[] = []
-  let fullMove = startFullMove
-  let turn = startTurn
-
-  sanMoves.forEach((san, i) => {
-    if (turn === 'w') {
-      parts.push(`${fullMove}.`)
-    } else if (i === 0) {
-      parts.push(`${fullMove}...`)
-    }
-
-    parts.push(san)
-
-    if (turn === 'b') {
-      fullMove += 1
-    }
-    turn = turn === 'w' ? 'b' : 'w'
-  })
-
-  return parts.join(' ')
-}
-
-const Analysis = ({ onBack }: AnalysisProps) => {
-  // create a chess game using a ref to always have access to the latest game state within closures
-  const chessGameRef = useRef(new Chess())
-  const chessGame = chessGameRef.current
-
-  // track the current position of the chess game in state to trigger a re-render of the chessboard
-  const [chessPosition, setChessPosition] = useState(chessGame.fen())
   const [moveFrom, setMoveFrom] = useState('')
   const [optionSquares, setOptionSquares] = useState<Record<string, React.CSSProperties>>({})
+
+  // a promotion the user has started but not yet chosen a piece for; the move
+  // is not played until the dialog resolves
+  const [promotionMove, setPromotionMove] = useState<{ from: string; to: string } | null>(null)
 
   // ranked candidate lines from the last completed search, and whether one is in flight
   const [engineLines, setEngineLines] = useState<EngineLine[]>([])
   const [isAnalyzing, setIsAnalyzing] = useState(false)
 
-  // re-run the engine every time the position changes
+  // any in-progress square selection belongs to whichever position it was
+  // made on, so drop it whenever the displayed position changes for any
+  // reason (a move, or navigating history). This adjusts state during
+  // render rather than in an effect -- React's recommended way to reset
+  // state in response to a changing value without an extra render pass.
+  const [selectionPosition, setSelectionPosition] = useState(position)
+  if (selectionPosition !== position) {
+    setSelectionPosition(position)
+    setMoveFrom('')
+    setOptionSquares({})
+    // a half-finished promotion belongs to the position it was started from
+    setPromotionMove(null)
+  }
+
+  // guards against a stale search's result landing after a newer one has
+  // already started (e.g. rapidly clicking through history) -- only the
+  // most recently started request is allowed to update state when it
+  // resolves, the same role isThinkingRef plays in chessgame.tsx.
+  const analysisRequestIdRef = useRef(0)
+
+  async function runAnalysis(fen: string, requestId: number): Promise<void> {
+    setIsAnalyzing(true)
+
+    try {
+      const lines = await window.api.analyzePosition(fen, MULTI_PV, ANALYSIS_DEPTH)
+      if (analysisRequestIdRef.current === requestId) {
+        setEngineLines(lines)
+      }
+    } catch (error) {
+      console.error('Stockfish failed to analyze the position:', error)
+    } finally {
+      if (analysisRequestIdRef.current === requestId) {
+        setIsAnalyzing(false)
+      }
+    }
+  }
+
+  // re-run the engine every time the displayed position changes -- this
+  // covers both making a new move and navigating through history, so
+  // reviewing past positions shows their live analysis too. A game-over
+  // position just skips the search entirely; the render below already
+  // treats a game-over position as having no lines, so there's nothing to
+  // reset here.
   useEffect(() => {
-    if (chessGame.isGameOver()) {
-      setEngineLines([])
-      setIsAnalyzing(false)
+    if (new Chess(position).isGameOver()) {
       return
     }
 
-    let cancelled = false
-    setIsAnalyzing(true)
-
-    window.api
-      .analyzePosition(chessPosition, MULTI_PV, ANALYSIS_DEPTH)
-      .then((lines) => {
-        if (!cancelled) {
-          setEngineLines(lines)
-        }
-      })
-      .catch((error) => {
-        console.error('Stockfish failed to analyze the position:', error)
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsAnalyzing(false)
-        }
-      })
-
-    // ignore this search's result if the position moves on before it resolves
-    return () => {
-      cancelled = true
-    }
-  }, [chessPosition])
+    const requestId = analysisRequestIdRef.current + 1
+    analysisRequestIdRef.current = requestId
+    runAnalysis(position, requestId)
+  }, [position])
 
   // get the move options for a square to show valid moves
-  function getMoveOptions(square: Square) {
+  function getMoveOptions(square: Square): boolean {
     const moves = chessGame.moves({
       square,
       verbose: true
@@ -213,30 +172,40 @@ const Analysis = ({ onBack }: AnalysisProps) => {
     return true
   }
 
+  // Whether moving from -> to would be a promotion, per chess.js rather than
+  // guessed from the rank.
+  function isPromotion(from: string, to: string): boolean {
+    return chessGame
+      .moves({ square: from as Square, verbose: true })
+      .some((move) => move.to === to && move.promotion)
+  }
+
+  function onPromotionSelect(piece: PromotionPiece): void {
+    if (promotionMove) {
+      pushMove({ from: promotionMove.from, to: promotionMove.to, promotion: piece })
+    }
+    setPromotionMove(null)
+  }
+
   function onPieceDrop({ sourceSquare, targetSquare }: PieceDropHandlerArgs): boolean {
     if (!targetSquare) {
       return false
     }
 
-    // attempt the move; reject the drop (piece snaps back) if illegal
-    try {
-      chessGame.move({
-        from: sourceSquare,
-        to: targetSquare,
-        promotion: 'q'
-      })
-    } catch {
-      return false
+    // a promotion needs a piece chosen first; report success so the pawn stays
+    // put on the promotion square while the dialog is open
+    if (isPromotion(sourceSquare, targetSquare)) {
+      setPromotionMove({ from: sourceSquare, to: targetSquare })
+      return true
     }
 
-    setChessPosition(chessGame.fen())
-    setMoveFrom('')
-    setOptionSquares({})
-
-    return true
+    // attempt the move; reject the drop (piece snaps back) if illegal.
+    // If we were reviewing an earlier position, this branches from here,
+    // discarding whatever moves came after it.
+    return pushMove({ from: sourceSquare, to: targetSquare }) !== null
   }
 
-  function onSquareClick({ square, piece }: SquareHandlerArgs) {
+  function onSquareClick({ square, piece }: SquareHandlerArgs): void {
     // piece clicked to move
     if (!moveFrom && piece) {
       const hasMoveOptions = getMoveOptions(square as Square)
@@ -262,48 +231,41 @@ const Analysis = ({ onBack }: AnalysisProps) => {
       return
     }
 
+    // is a promotion -- hand off to the dialog instead of assuming a queen
+    if (foundMove.promotion) {
+      setPromotionMove({ from: moveFrom, to: square })
+      setMoveFrom('')
+      setOptionSquares({})
+      return
+    }
+
     // is normal move
-    try {
-      chessGame.move({
-        from: moveFrom,
-        to: square,
-        promotion: 'q'
-      })
-    } catch {
+    if (!pushMove({ from: moveFrom, to: square })) {
       const hasMoveOptions = getMoveOptions(square as Square)
       if (hasMoveOptions) {
         setMoveFrom(square)
       }
-      return
     }
-
-    setChessPosition(chessGame.fen())
-    setMoveFrom('')
-    setOptionSquares({})
   }
 
-  function handleReset() {
-    chessGameRef.current = new Chess()
-    setChessPosition(chessGameRef.current.fen())
-    setMoveFrom('')
-    setOptionSquares({})
+  function handleReset(): void {
+    reset()
     setEngineLines([])
   }
 
-  function gameOverLabel(game: Chess): string {
-    if (game.isCheckmate()) return 'Checkmate'
-    if (game.isStalemate()) return 'Stalemate'
-    if (game.isDraw()) return 'Draw'
-    return 'Game over'
-  }
+  // a finished position has no lines to show, regardless of whatever the
+  // last (possibly now-stale) search returned.
+  const effectiveEngineLines = chessGame.isGameOver() ? [] : engineLines
 
   // only the lines within GOOD_ENOUGH_MARGIN_CP of the best one get an arrow —
   // a sharp position with one clear best move may show just a single arrow
-  const bestScore = engineLines[0] ? comparableScore(engineLines[0]) : null
+  const bestScore = effectiveEngineLines[0] ? comparableScore(effectiveEngineLines[0]) : null
   const goodLines =
     bestScore === null
       ? []
-      : engineLines.filter((line) => bestScore - comparableScore(line) <= GOOD_ENOUGH_MARGIN_CP)
+      : effectiveEngineLines.filter(
+          (line) => bestScore - comparableScore(line) <= GOOD_ENOUGH_MARGIN_CP
+        )
 
   const arrows: Arrow[] = goodLines
     .map((line, i) => {
@@ -321,7 +283,7 @@ const Analysis = ({ onBack }: AnalysisProps) => {
 
   // set the chessboard options
   const chessboardOptions = {
-    position: chessPosition,
+    position,
     squareStyles: optionSquares,
     arrows,
     allowDrawingArrows: true,
@@ -333,61 +295,56 @@ const Analysis = ({ onBack }: AnalysisProps) => {
     id: 'analysis-board'
   }
 
-  // a render-safe snapshot for the JSX below — chessGameRef is mutated
-  // imperatively in handlers/effects, so its .current shouldn't be read
-  // directly during render; this derives the same info from state instead.
-  const displayGame = new Chess(chessPosition)
+  const status = chessGame.isGameOver()
+    ? gameOverLabel(chessGame)
+    : isAnalyzing
+      ? 'Analyzing…'
+      : isAtLive
+        ? 'Ready'
+        : 'Reviewing'
 
-  // render the chessboard inside a centered Tailwind container
   return (
-    <div className="flex w-full max-w-xl flex-col items-center gap-3">
-      <div className="flex w-full items-center justify-between text-amber-200">
-        <span className="text-sm select-none">
-          {displayGame.isGameOver()
-            ? gameOverLabel(displayGame)
-            : isAnalyzing
-              ? 'Stockfish is analyzing…'
-              : 'Analysis ready'}
-        </span>
-        <div className="flex gap-4">
-          <button
-            type="button"
-            onClick={handleReset}
-            className="text-sm underline hover:text-amber-400"
-          >
-            Reset Board
-          </button>
-          <button type="button" onClick={onBack} className="text-sm underline hover:text-amber-400">
-            Back
-          </button>
-        </div>
-      </div>
-
-      <Chessboard options={chessboardOptions} />
-
-      <div className="flex w-full flex-col gap-2">
-        <span className="select-none text-sm font-bold text-amber-200">
-          Evaluation: {formatEvaluation(engineLines[0], displayGame.turn())}
-        </span>
-
-        {goodLines.length === 0 ? (
-          <p className="select-none text-sm text-amber-100/60">
-            {displayGame.isGameOver() ? 'No moves left in this position.' : 'Waiting for the first line…'}
-          </p>
-        ) : (
-          goodLines.map((line, i) => (
-            <div key={line.rank} className="flex items-start gap-2 text-sm">
-              <span
-                className="mt-1 h-2.5 w-2.5 flex-none rounded-full"
-                style={{ background: RANK_COLORS[i] ?? RANK_COLORS[RANK_COLORS.length - 1] }}
-                aria-hidden="true"
-              />
-              <span className="text-amber-100/90">{pvToSan(chessPosition, line.pv)}</span>
-            </div>
-          ))
+    <BoardLayout
+      scale={boardScale}
+      left={<MoveHistory moves={moveHistory} viewIndex={viewIndex} onSelectIndex={goToIndex} />}
+      right={
+        <EnginePanel
+          position={position}
+          sideToMove={chessGame.turn()}
+          lines={goodLines}
+          rankColors={RANK_COLORS}
+          isAnalyzing={isAnalyzing}
+          isGameOver={chessGame.isGameOver()}
+          status={status}
+          depth={ANALYSIS_DEPTH}
+        />
+      }
+      controls={
+        <BoardControls
+          canGoBack={canGoBack}
+          canGoForward={canGoForward}
+          onBack={goBack}
+          onForward={goForward}
+          scale={boardScale}
+          onScaleChange={setBoardScale}
+          actionLabel="Reset Board"
+          onAction={handleReset}
+        />
+      }
+    >
+      <>
+        <Chessboard options={chessboardOptions} />
+        {promotionMove && (
+          <PromotionDialog
+            targetSquare={promotionMove.to}
+            color={chessGame.turn()}
+            boardOrientation="white"
+            onSelect={onPromotionSelect}
+            onCancel={() => setPromotionMove(null)}
+          />
         )}
-      </div>
-    </div>
+      </>
+    </BoardLayout>
   )
 }
 

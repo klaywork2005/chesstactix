@@ -1,146 +1,148 @@
-type Feature = {
-  icon: string
-  title: string
-  description: string
-}
-type LandingPageProps = { 
+import { Chessboard } from 'react-chessboard'
+import { STRENGTH_LEVELS } from '../utils/strength'
+
+type LandingPageProps = {
   onLandingPagePlayButtonClick: () => void
-  
 }
-const FEATURES: Feature[] = [
+
+// Landing page chess game
+const HERO_POSITION = 'r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3'
+
+const CAPABILITIES: { term: string; detail: string }[] = [
   {
-    icon: 'fa-solid fa-chess-king',
-    title: 'Multiple Stockfish Strengths',
-    description:
-      'Dial the engine from beginner-friendly to full-strength grandmaster, so every game matches your level.'
+    term: 'Engine',
+    detail:
+      'Stockfish 18 running as a local process, across eight strength settings from roughly 800 Elo up to its full AI strength.'
   },
   {
-    icon: 'fa-solid fa-book-open',
-    title: 'Opening Explorer',
-    description:
-      'Study openings move by move and understand the ideas behind them before you play them yourself.'
+    term: 'Analysis',
+    detail:
+      'Multi-line search to depth 16, with evaluations and best lines for every position in a game.'
   },
   {
-    icon: 'fa-solid fa-magnifying-glass-chart',
-    title: 'Game Analysis',
-    description:
-      "Review any game move-by-move, spot blunders and missed tactics, and see the engine's best line instead."
+    term: 'Review',
+    detail:
+      'Step through any game move by move. Every position is re-analyzed as you navigate to it.'
   },
   {
-    icon: 'fa-solid fa-lock',
-    title: '100% Offline & Private',
-    description:
-      'Every engine call and analysis run happens locally on your machine. No accounts needed, and no data ever leaves your computer.'
-  },
-  {
-    icon: 'fa-solid fa-display',
-    title: 'Cross-Platform',
-    description:
-      'Built with Electron to run natively on Windows, macOS, and Linux from a single lightweight install.'
-  },
-  {
-    icon: 'fa-solid fa-bolt',
-    title: 'Lightweight & Fast',
-    description:
-      'No bloat, no background services. It is just a fast, focused chess app that opens instantly.'
+    term: 'Privacy',
+    detail: 'No accounts, no telemetry, no network calls. Nothing ever leaves your local machine.'
   }
 ]
 
-const FeatureCard = ({ icon, title, description }: Feature) => {
+const LandingPage = ({ onLandingPagePlayButtonClick }: LandingPageProps): React.JSX.Element => {
   return (
-    <div className="flex flex-col items-center text-center gap-2 rounded-lg border-1 border-neutral-700 bg-neutral-800 p-6 hover:border-amber-400/50 transition-colors">
-      <i className={`${icon} text-amber-400 text-3xl mb-1`} />
-      <h3 className="text-amber-100 font-bold text-lg">{title}</h3>
-      <p className="text-amber-100/70 text-sm">{description}</p>
-    </div>
-  )
-}
+    <div className="flex w-full max-w-[88rem] flex-col px-10">
+      {/* Hero: the claim on the left, the product itself on the right. */}
+      <section className="flex flex-col items-center gap-14 py-10 lg:flex-row lg:justify-between lg:gap-20">
+        <div className="flex max-w-xl flex-col items-start">
+          <span className="tracking-[0.2em] font-bold text-amber-200/80  border-b-1 pb-2 border-neutral-600/50">
+            AVAILABLE ON: WINDOWS , MACOS OR LINUX
+          </span>
 
-type Step = {
-  number: string
-  title: string
-  description: string
-}
+          <h2 className="mt-4 text-5xl leading-[1.05] font-bold text-amber-100 lg:text-6xl">
+            Play the most powerful chess engine,
+            <br />
+            Understand why
+            <br />
+            you lost.
+          </h2>
 
-const STEPS: Step[] = [
-  {
-    number: '01',
-    title: 'Choose Your Setup',
-    description: 'Pick your side, an engine difficulty, or load a game to analyze.'
-  },
-  {
-    number: '02',
-    title: 'Play or Review',
-    description: 'Face Stockfish across a range of strengths, or step through an existing game.'
-  },
-  {
-    number: '03',
-    title: 'Get Instant Feedback',
-    description:
-      'See engine evaluations, best lines, and mistakes as they happen. This is all computed locally.'
-  }
-]
-
-const LandingPage = ({onLandingPagePlayButtonClick}: LandingPageProps) => {
-  return (
-    <div className="flex flex-col items-center w-[85vw] gap-16 pb-16">
-      <section className="flex flex-col items-center w-full gap-8">
-        <div className="flex flex-col items-center text-center gap-2">
-          <h2 className="text-amber-100 font-bold text-3xl mt-4">Everything You Need, All Local</h2>
-          <p className="text-amber-100/70 text-base max-w-2xl">
-            No sign-ups, no cloud dependency.
+          <p className="mt-6 max-w-md text-base leading-relaxed text-amber-100/60">
+            A desktop chess app with a real local engine behind it. Play a game at any strength, or
+            walk back through a game or opening of your choice and see how good your moves are.
           </p>
-          <p className="text-amber-100/70 text-base max-w-2xl">
-            ChessTactix bundles a full training and analysis toolkit that runs entirely on your machine.
-          </p>
+
+          <div className="mt-9 flex items-center gap-6">
+            <button
+              type="button"
+              onClick={onLandingPagePlayButtonClick}
+              className="cursor-pointer rounded bg-amber-400 px-7 py-3 text-base font-bold text-amber-950 transition-colors hover:bg-amber-300 active:bg-amber-500"
+            >
+              Play now
+            </button>
+            <span className="translate-y-4 -translate-x-2 text-xs tracking-wider text-amber-200/50">
+              *No account required
+            </span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-          {FEATURES.map((feature) => (
-            <FeatureCard key={feature.title} {...feature} />
-          ))}
+        {/* Static, non-interactive — this is the hero image, not a playable board. */}
+        <div
+          className="w-full max-w-[26rem] flex-none lg:max-w-[30rem]"
+          aria-hidden="true"
+          role="presentation"
+        >
+          <Chessboard
+            options={{
+              position: HERO_POSITION,
+              allowDragging: false,
+              allowDrawingArrows: false,
+              showNotation: false,
+              id: 'landing-hero'
+            }}
+          />
         </div>
       </section>
 
-      <section className="flex flex-col items-center w-full gap-8">
-        <h2 className="text-amber-100 font-bold text-3xl text-center">How It Works</h2>
+      {/* The strength ladder, drawn from the same table the setup slider uses
+          so the two can never drift apart. */}
+      <section className="border-t border-neutral-800 py-16">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
+          <h3 className="text-2xl font-bold text-amber-100">
+            Eight strengths, one slider
+            </h3>
+          <span className="text-[15px] text-amber-100/50">
+            Pick the engine opponent you can actually beat.
+          </span>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
-          {STEPS.map((step) => (
-            <div key={step.number} className="flex flex-col items-center text-center gap-2 p-6">
-              <span className="text-amber-400/60 font-bold text-4xl">{step.number}</span>
-              <h3 className="text-amber-100 font-bold text-lg">{step.title}</h3>
-              <p className="text-amber-100/70 text-sm">{step.description}</p>
+        <ol className="mt-9 flex items-end gap-1.5">
+          {STRENGTH_LEVELS.map((rung, i) => (
+            <li key={rung.level} className="flex flex-1 flex-col items-center gap-3">
+              {/* a rising bar per rung, so the ladder reads as a ramp */}
+              <div
+                className="w-full rounded-t-sm bg-amber-400/70"
+                style={{ height: `${1.25 + i * 0.75}rem` }}
+                aria-hidden="true"
+              />
+              <div className="flex flex-col items-center gap-0.5 border-t border-neutral-700 pt-2.5 text-center">
+                <span className=" text-amber-100/85">~{rung.elo}</span>
+                <span className="leading-tight text-amber-100/60">{rung.name}</span>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* Capabilities as a definition list on hairline rules -- no boxes. */}
+      <section className="border-t border-neutral-800 py-16">
+        <dl className="flex flex-col">
+          {CAPABILITIES.map((capability) => (
+            <div
+              key={capability.term}
+              className="flex flex-col gap-1.5 border-b border-neutral-800/60 py-5 sm:flex-row sm:gap-10"
+            >
+              <dt className="w-40 flex-none  font-bold tracking-[0.18em] text-amber-200/45 uppercase">
+                {capability.term}
+              </dt>
+              <dd className="max-w-2xl text-[15px] leading-relaxed text-amber-100/65">
+                {capability.detail}
+              </dd>
             </div>
           ))}
-        </div>
+        </dl>
       </section>
 
-      <section className="flex flex-col items-center w-full rounded-2xl border border-amber-400/30 bg-gradient-to-b from-amber-400/10 to-transparent px-8 py-12 text-center">
-        <i className="fa-solid fa-chess-knight text-amber-400 text-3xl mb-2" />
-        <h2 className="text-amber-100 font-bold text-3xl mb-4">Try ChessTactix In a Game Against Stockfish</h2>
-        <p className="text-amber-100/70 text-base max-w-xl">
-          Jump straight into a game -
-        </p>
-        <p className="text-amber-100/70 text-base max-w-xl">
-          Pick your side and difficulty, no setup required.
-        </p>
-        <button 
-        onClick={onLandingPagePlayButtonClick} 
-        className="cursor-pointer active:bg-amber-700 hover:bg-amber-500 text-amber-900 bg-amber-400 px-8 py-3 mt-3 rounded-lg border border-amber-200 text-lg font-bold">
-          Play Now
-        </button>
-      </section>
-
-      <footer className="flex flex-col items-center gap-2 border-t-1 border-neutral-700 w-full pt-8 text-amber-100/50 text-sm">
-        <p>ChessTactix</p>
+      <footer className="flex items-center justify-between pb-16 text-lg text-amber-100/50">
+        <span>ChessTactix was created Klay Garcia</span>
         <a
           href="https://github.com/klaywork2005/chesstactix"
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-blue-300 transition-colors"
+          className="transition-colors hover:text-amber-100/70"
         >
-          View the source on GitHub
+          Source on GitHub
         </a>
       </footer>
     </div>

@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Chess, type Square } from 'chess.js'
 import { Chessboard, type PieceDropHandlerArgs, type SquareHandlerArgs } from 'react-chessboard'
+import { useChessHistory } from '../hooks/useChessHistory'
+import { useBoardScale } from '../hooks/useBoardScale'
+import BoardLayout from './boardlayout'
+import BoardControls from './boardcontrols'
+import MoveHistory from './movehistory'
+import GameInfoPanel from './gameinfopanel'
+import PromotionDialog, { type PromotionPiece } from './promotiondialog'
+import { gameOverLabel } from '../utils/gamestatus'
 import type { AiOptions } from '../types'
 
 type ChessGameProps = {
@@ -8,29 +16,72 @@ type ChessGameProps = {
   onNewGame: () => void
 }
 
-const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps) => {
-  // create a chess game using a ref to always have access to the latest game state within closures
-  const chessGameRef = useRef(new Chess())
-  const chessGame = chessGameRef.current
+// how long to pause before the AI replies, purely so its move doesn't feel
+// instantaneous -- applies whether it's replying to a player move or making
+// the opening move (when the player chose to play Black).
+const AI_MOVE_DELAY_MS = 300
 
-  // track the current position of the chess game in state to trigger a re-render of the chessboard
-  const [chessPosition, setChessPosition] = useState(chessGame.fen())
-  const [moveFrom, setMoveFrom] = useState('')
-  const [optionSquares, setOptionSquares] = useState<Record<string, React.CSSProperties>>({})
-  const [allowDragging, setAllowDragging] = useState(true);
-  const [allowDrawingArrows, setAllowDrawingArrows] = useState(true);
-  const [opacity, setOpacity] = useState(0);
-  const [blur, setBlur] = useState(0);
-
+const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps): React.JSX.Element => {
   // whether we're waiting on the Stockfish engine (main process) for a move
   const [isThinking, setIsThinking] = useState(false)
   const isThinkingRef = useRef(false)
 
+  // linear position history + a viewIndex pointer into it (see the hook for
+  // the full undo/redo model). Navigation is disabled while the engine is
+  // thinking, so the AI's response always lands on the position it was
+  // actually asked about, never on a position the user navigated away to
+  // in the meantime.
+  const {
+    position,
+    isAtLive,
+    canGoBack,
+    canGoForward,
+    goBack,
+    goForward,
+    viewIndex,
+    goToIndex,
+    pushMove,
+    moveHistory
+  } = useChessHistory(!isThinking)
+
+  // how large to draw the board, driven by the slider in the control bar
+  const [boardScale, setBoardScale] = useBoardScale()
+
+  const [moveFrom, setMoveFrom] = useState('')
+  const [optionSquares, setOptionSquares] = useState<Record<string, React.CSSProperties>>({})
+
+  // a disposable, render-safe instance for querying the displayed position
+  // (legal moves, turn, game-over status, ...) -- built fresh from
+  // `position` each render rather than held onto, since it's only ever
+  // read from here. Moves are applied via pushMove() instead.
+  const chessGame = new Chess(position)
+
+  // the promotion the player has started but not yet chosen a piece for. While
+  // this is set the move has NOT been played -- the dialog is what decides
+  // which piece it promotes to, so nothing is pushed until it resolves.
+  const [promotionMove, setPromotionMove] = useState<{ from: string; to: string } | null>(null)
+
+  // any in-progress square selection belongs to whichever position it was
+  // made on, so drop it whenever the displayed position changes for any
+  // reason (a move, or navigating history). This adjusts state during
+  // render rather than in an effect -- React's recommended way to reset
+  // state in response to a changing value without an extra render pass.
+  const [selectionPosition, setSelectionPosition] = useState(position)
+  if (selectionPosition !== position) {
+    setSelectionPosition(position)
+    setMoveFrom('')
+    setOptionSquares({})
+    // a half-finished promotion belongs to the position it was started from,
+    // so navigating away (or the move landing) closes the dialog
+    setPromotionMove(null)
+  }
+
   const playerColorLetter = aiOptions.playerColor === 'white' ? 'w' : 'b'
 
-  // ask the Stockfish engine (running in the main process, via IPC) for a move and play it
-  async function makeAiMove(): Promise<void> {
-    if (isThinkingRef.current || chessGame.isGameOver()) {
+  // ask the Stockfish engine (running in the main process, via IPC) for a
+  // move in the given position and play it
+  async function makeAiMove(fen: string): Promise<void> {
+    if (isThinkingRef.current) {
       return
     }
 
@@ -38,20 +89,14 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps) => {
     setIsThinking(true)
 
     try {
-      const uciMove = await window.api.getBestMove(chessGame.fen(), aiOptions.difficulty)
+      const uciMove = await window.api.getBestMove(fen, aiOptions.level)
 
-      if (uciMove && !chessGame.isGameOver()) {
-        chessGame.move({
+      if (uciMove) {
+        pushMove({
           from: uciMove.slice(0, 2),
           to: uciMove.slice(2, 4),
-          promotion: (uciMove.length > 4 ? uciMove.slice(4, 5) : undefined) as
-            | 'q'
-            | 'r'
-            | 'b'
-            | 'n'
-            | undefined
+          promotion: uciMove.length > 4 ? uciMove.slice(4, 5) : undefined
         })
-        setChessPosition(chessGame.fen())
       }
     } catch (error) {
       console.error('Stockfish failed to produce a move:', error)
@@ -61,17 +106,24 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps) => {
     }
   }
 
-  // if the player chose to play black, the AI (white) needs to make the opening move
+  // whenever it becomes the AI's turn at the live position -- whether
+  // because the player just moved, or because the player chose to play
+  // Black and the AI has to open -- let it respond after a short delay.
   useEffect(() => {
-    if (chessGame.turn() !== playerColorLetter) {
-      makeAiMove()
+    if (!isAtLive || chessGame.isGameOver() || chessGame.turn() === playerColorLetter) {
+      return
     }
-    // only run once, when the game is first mounted
+
+    const timeoutId = setTimeout(() => {
+      makeAiMove(position)
+    }, AI_MOVE_DELAY_MS)
+
+    return () => clearTimeout(timeoutId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [position, isAtLive])
 
   // get the move options for a square to show valid moves
-  function getMoveOptions(square: Square) {
+  function getMoveOptions(square: Square): boolean {
     const moves = chessGame.moves({
       square,
       verbose: true
@@ -119,39 +171,44 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps) => {
     return true
   }
 
+  // Whether moving from -> to would be a promotion. Asked of chess.js rather
+  // than inferred from the rank, so it is only true when a pawn is actually
+  // the piece arriving there and the move is legal to begin with.
+  function isPromotion(from: string, to: string): boolean {
+    return chessGame
+      .moves({ square: from as Square, verbose: true })
+      .some((move) => move.to === to && move.promotion)
+  }
+
+  function onPromotionSelect(piece: PromotionPiece): void {
+    if (promotionMove) {
+      pushMove({ from: promotionMove.from, to: promotionMove.to, promotion: piece })
+    }
+    setPromotionMove(null)
+  }
+
   function onPieceDrop({ sourceSquare, targetSquare }: PieceDropHandlerArgs): boolean {
-    // ignore drops while the engine is thinking, or if dropped off the board
-    if (isThinking || !targetSquare) {
+    // ignore drops while the engine is thinking, while reviewing history
+    // (jump back to live to keep playing), or if dropped off the board
+    if (isThinking || !isAtLive || !targetSquare) {
       return false
+    }
+
+    // a promotion needs a piece chosen before it can be played, so hand off to
+    // the dialog and report success -- returning false here would snap the
+    // pawn back off the promotion square while the choice is still open
+    if (isPromotion(sourceSquare, targetSquare)) {
+      setPromotionMove({ from: sourceSquare, to: targetSquare })
+      return true
     }
 
     // attempt the move; reject the drop (piece snaps back) if illegal
-    try {
-      chessGame.move({
-        from: sourceSquare,
-        to: targetSquare,
-        promotion: 'q'
-      })
-    } catch {
-      return false
-    }
-
-    // update the position state
-    setChessPosition(chessGame.fen())
-
-    // clear moveFrom and optionSquares, in case a square was mid-selected via click
-    setMoveFrom('')
-    setOptionSquares({})
-
-    // let the AI respond after a short delay
-    setTimeout(makeAiMove, 500)
-
-    return true
+    return pushMove({ from: sourceSquare, to: targetSquare }) !== null
   }
 
-  function onSquareClick({ square, piece }: SquareHandlerArgs) {
-    // ignore input while the engine is thinking
-    if (isThinking) {
+  function onSquareClick({ square, piece }: SquareHandlerArgs): void {
+    // ignore input while the engine is thinking, or while reviewing history
+    if (isThinking || !isAtLive) {
       return
     }
 
@@ -180,66 +237,95 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps) => {
       return
     }
 
+    // is a promotion -- same hand-off to the dialog as the drag path
+    if (foundMove.promotion) {
+      setPromotionMove({ from: moveFrom, to: square })
+      setMoveFrom('')
+      setOptionSquares({})
+      return
+    }
+
     // is normal move
-    try {
-      chessGame.move({
-        from: moveFrom,
-        to: square,
-        promotion: 'q'
-      })
-    } catch {
+    if (!pushMove({ from: moveFrom, to: square })) {
       const hasMoveOptions = getMoveOptions(square as Square)
       if (hasMoveOptions) {
         setMoveFrom(square)
       }
-      return
     }
-
-    // update the position state
-    setChessPosition(chessGame.fen())
-
-    // clear moveFrom and optionSquares
-    setMoveFrom('')
-    setOptionSquares({})
-
-    // let the AI respond after a short delay
-    setTimeout(makeAiMove, 300)
   }
 
   // set the chessboard options
   const chessboardOptions = {
     boardOrientation: aiOptions.playerColor,
-    position: chessPosition,
+    position,
     squareStyles: optionSquares,
-    allowDrawingArrows,
-    allowDragging,
+    allowDrawingArrows: true,
+    // only draggable at the live position — reviewing an earlier position
+    // is read-only until you navigate back to the live head
+    allowDragging: isAtLive,
     dropSquareStyle: {
-        boxShadow: 'inset 0px 0px 0px 4px orange'
-      },
-      draggingPieceGhostStyle: {
-        opacity,
-        filter: `blur(${blur}px)`
-      },
+      boxShadow: 'inset 0px 0px 0px 4px orange'
+    },
     onSquareClick,
     onPieceDrop,
     id: 'play-vs-ai'
   }
 
-  // render the chessboard inside a centered Tailwind container
+  const status = chessGame.isGameOver()
+    ? gameOverLabel(chessGame)
+    : isThinking
+      ? 'Stockfish is thinking…'
+      : isAtLive
+        ? 'Your move'
+        : 'Reviewing'
+
   return (
-    <div className="flex w-full max-w-xl flex-col items-center gap-3">
-      <div className="flex w-full items-center justify-between text-amber-200">
-        <span className="text-sm select-none">{isThinking ? 'Stockfish is thinking…' : 'Your move'}</span>
-        <button
-          type="button"
-          onClick={onNewGame}
-          className="text-sm underline hover:text-amber-400"
-        >
-          New Game
-        </button>
-      </div>
-      <Chessboard options={chessboardOptions} />
-    </div>
+    <BoardLayout
+      scale={boardScale}
+      left={
+        <MoveHistory
+          moves={moveHistory}
+          viewIndex={viewIndex}
+          onSelectIndex={goToIndex}
+          disabled={isThinking}
+        />
+      }
+      right={
+        <GameInfoPanel
+          position={position}
+          status={status}
+          isThinking={isThinking}
+          aiOptions={aiOptions}
+          moveCount={Math.ceil(moveHistory.length / 2)}
+        />
+      }
+      controls={
+        <BoardControls
+          canGoBack={canGoBack}
+          canGoForward={canGoForward}
+          onBack={goBack}
+          onForward={goForward}
+          scale={boardScale}
+          onScaleChange={setBoardScale}
+          actionLabel="New Game"
+          onAction={onNewGame}
+          disabled={isThinking}
+        />
+      }
+    >
+      <>
+        <Chessboard options={chessboardOptions} />
+        {promotionMove && (
+          <PromotionDialog
+            targetSquare={promotionMove.to}
+            color={playerColorLetter}
+            boardOrientation={aiOptions.playerColor}
+            onSelect={onPromotionSelect}
+            onCancel={() => setPromotionMove(null)}
+          />
+        )}
+      </>
+    </BoardLayout>
   )
 }
 

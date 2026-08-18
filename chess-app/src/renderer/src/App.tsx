@@ -10,10 +10,10 @@ import type { AiOptions } from './types'
 
 type View = 'landing' | 'setup' | 'ai' | 'analysis'
 
-const App = () => {
+const App = (): React.JSX.Element => {
   const [view, setView] = useState<View>('landing')
   const [aiOptions, setAiOptions] = useState<AiOptions>({
-    difficulty: 'easy',
+    level: 3,
     playerColor: 'white'
   })
 
@@ -25,10 +25,22 @@ const App = () => {
         onHeaderLogoClick={() => setView('landing')}
         onPlayClick={() => setView('setup')}
         onAnalyzeClick={() => setView('analysis')}
-        onContactClick={() => setView('landing')}
       />
 
-      <main className="flex flex-1 items-center justify-center">
+      {/* The landing page scrolls from the top; every other view is a single
+          screen that centers itself in whatever height is left below the header.
+
+          The board views additionally get `min-h-0`, which drops the automatic
+          minimum height a flex item takes from its own content. Without it the
+          main element could never be shorter than the board it contains, so a
+          board sized from the measured height would hold its own space open and
+          never shrink when the window got shorter. The scrolling views keep the
+          automatic minimum, since there they are what makes the page scroll. */}
+      <main
+        className={`flex flex-1 justify-center ${view === 'landing' ? 'items-start' : 'items-center'} ${
+          view === 'ai' || view === 'analysis' ? 'min-h-0' : ''
+        }`}
+      >
         {view === 'landing' && (
           <LandingPage onLandingPagePlayButtonClick={() => setView('setup')} />
         )}
@@ -36,7 +48,7 @@ const App = () => {
           <GameSetup aiOptions={aiOptions} onChange={setAiOptions} onStart={() => setView('ai')} />
         )}
         {view === 'ai' && <ChessGame aiOptions={aiOptions} onNewGame={() => setView('setup')} />}
-        {view === 'analysis' && <Analysis onBack={() => setView('landing')} />}
+        {view === 'analysis' && <Analysis />}
       </main>
     </div>
   )

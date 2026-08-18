@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
-type Difficulty = 'easy' | 'medium' | 'hard'
+type StrengthLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 
 type EngineLine = {
   rank: number
@@ -13,8 +13,8 @@ type EngineLine = {
 
 // Custom APIs for renderer
 const api = {
-  getBestMove: (fen: string, difficulty: Difficulty): Promise<string | null> =>
-    ipcRenderer.invoke('chess:getBestMove', fen, difficulty),
+  getBestMove: (fen: string, level: StrengthLevel): Promise<string | null> =>
+    ipcRenderer.invoke('chess:getBestMove', fen, level),
   analyzePosition: (fen: string, multiPv: number, depth: number): Promise<EngineLine[]> =>
     ipcRenderer.invoke('chess:analyzePosition', fen, multiPv, depth)
 }

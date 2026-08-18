@@ -7,10 +7,14 @@ import { getBestMove, analyzePosition } from './stockfish'
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 1000,
-    height: 800,
-    minWidth: 800,
-    minHeight: 700,
+    // sized for the three-column board layout: a large centered board with a
+    // move list and an engine/info rail either side of it. The board tracks
+    // whatever space is left over, so the minimums only have to be the point
+    // below which the rails stop having usable room beside it.
+    width: 1400,
+    height: 900,
+    minWidth: 900,
+    minHeight: 640,
     show: false,
     autoHideMenuBar: true,
     icon,
@@ -63,8 +67,8 @@ app.whenReady().then(() => {
 
   // Runs the Stockfish engine (Node-only, hence main process) and hands the
   // resulting move back to the renderer's ChessGame component.
-  ipcMain.handle('chess:getBestMove', (_event, fen: string, difficulty: 'easy' | 'medium' | 'hard') =>
-    getBestMove(fen, difficulty)
+  ipcMain.handle('chess:getBestMove', (_event, fen: string, level: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) =>
+    getBestMove(fen, level)
   )
 
   // Runs a MultiPV search for the Analysis page -- returns several ranked

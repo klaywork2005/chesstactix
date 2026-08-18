@@ -4,14 +4,21 @@ type HeaderProps = {
   onHeaderLogoClick: () => void
   onPlayClick: () => void
   onAnalyzeClick: () => void
-  onContactClick: () => void
 }
+
+// Opened in a new window so Electron's setWindowOpenHandler passes it to
+// shell.openExternal, which hands the mailto off to the default mail client.
+const CONTACT_MAILTO =
+  'mailto:klayworkwork2005@gmail.com' +
+  '?subject=' +
+  encodeURIComponent('ChessTactix') +
+  '&body=' +
+  encodeURIComponent('Hi Klay,')
 
 const Header = ({
   onHeaderLogoClick,
   onPlayClick,
-  onAnalyzeClick,
-  onContactClick
+  onAnalyzeClick
 }: HeaderProps) => {
   return (
     <header className="sticky h-24 top-0 z-50 bg-neutral-950 border-b-1 border-neutral-700 text-amber-200">
@@ -65,13 +72,14 @@ const Header = ({
             Analyze
           </button>
 
-          <button
-            type="button"
-            onClick={onContactClick}
-            className="select-none border-0 bg-transparent p-0 cursor-pointer hover:text-mauve-300 text-2xl"
+          <a
+            href={CONTACT_MAILTO}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="select-none border-0 bg-transparent p-0 cursor-pointer hover:text-mauve-300 text-2xl text-amber-200 no-underline"
           >
             Contact
-          </button>
+          </a>
         </nav>
       </div>
     </header>
