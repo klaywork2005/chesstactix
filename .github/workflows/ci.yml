@@ -1,0 +1,40 @@
+name: CI
+
+# Fast feedback on every change: typecheck both TypeScript programs and lint.
+# The heavier cross-platform installer build lives in release.yml and only runs
+# for v* tags.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # A new push to the same branch supersedes whatever is still running for it.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # The postinstall step (electron-builder install-app-deps) is only needed
+      # when packaging, and pulls the Electron binary down for nothing here.
+      - run: npm ci --ignore-scripts
+
+      - run: npm run typecheck
+
+      # --cache would write a cache file that is never reused on a fresh runner
+      - run: npx eslint .

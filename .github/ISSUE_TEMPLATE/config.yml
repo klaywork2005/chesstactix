@@ -1,0 +1,13 @@
+# Only the two forms above are offered; blank issues are disabled so reports
+# arrive with the details needed to reproduce them.
+blank_issues_enabled: false
+contact_links:
+  - name: Question or general discussion
+    url: https://github.com/klaywork2005/chesstactix/discussions
+    about: For anything that is not a bug report or a concrete feature request.
+  - name: Engine behaviour
+    url: https://github.com/official-stockfish/Stockfish
+    about: >-
+      Questions about how Stockfish evaluates a position belong upstream.
+      ChessTactix only configures the engine — see docs/ARCHITECTURE.md for
+      exactly how.

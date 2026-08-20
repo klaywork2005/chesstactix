@@ -1,0 +1,15 @@
+# Normalize line endings to LF in the repository, whatever the checkout OS
+# does locally. Without this, editing on Windows silently rewrites whole
+# files to CRLF and every diff becomes unreadable.
+* text=auto eol=lf
+
+# Binary assets git must never touch.
+*.png binary
+*.ico binary
+*.icns binary
+*.svg text eol=lf
+*.woff2 binary
+*.wasm binary
+
+# Generated -- collapsed in diffs and excluded from language statistics.
+package-lock.json linguist-generated=true -diff

@@ -11,10 +11,6 @@ on:
 permissions:
   contents: write
 
-defaults:
-  run:
-    working-directory: chess-app
-
 jobs:
   build:
     strategy:
@@ -35,7 +31,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: chess-app/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - run: npm ci
 
@@ -53,8 +49,8 @@ jobs:
           name: installers-${{ matrix.os }}
           if-no-files-found: error
           path: |
-            chess-app/dist/*.exe
-            chess-app/dist/*.dmg
-            chess-app/dist/*.zip
-            chess-app/dist/*.AppImage
-            chess-app/dist/*.deb
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
+            dist/*.AppImage
+            dist/*.deb

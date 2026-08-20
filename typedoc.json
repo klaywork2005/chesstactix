@@ -1,0 +1,30 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "ChessTactix API",
+  "entryPoints": [
+    "src/main/stockfish.ts",
+    "src/preload/index.d.ts",
+    "src/renderer/src/types.ts",
+    "src/renderer/src/hooks/useChessHistory.ts",
+    "src/renderer/src/hooks/useBoardScale.ts",
+    "src/renderer/src/hooks/useElementSize.ts",
+    "src/renderer/src/utils/engine.ts",
+    "src/renderer/src/utils/material.ts",
+    "src/renderer/src/utils/strength.ts",
+    "src/renderer/src/utils/gamestatus.ts"
+  ],
+  "tsconfig": "tsconfig.typedoc.json",
+  "out": "docs/api",
+  "readme": "docs/api-intro.md",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "categorizeByGroup": true,
+  "githubPages": false,
+  "hideGenerator": true,
+  "skipErrorChecking": true,
+  "validation": {
+    "notExported": false,
+    "invalidLink": true,
+    "notDocumented": false
+  }
+}

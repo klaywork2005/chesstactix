@@ -1,0 +1,110 @@
+name: Bug report
+description: Something in ChessTactix does not work the way it should
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The position and strength level are usually
+        enough to reproduce a chess bug exactly, so please include them if the
+        problem happened during a game.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you see, and what did you expect instead?
+      placeholder: |
+        The engine played Qxf7 and the app showed "Checkmate", but the king
+        could still capture the queen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Play vs AI at Club (1500), as White
+        2. Reach the position below
+        3. Play Nf3
+        4. The move list shows the move twice
+    validations:
+      required: true
+
+  - type: input
+    id: fen
+    attributes:
+      label: Position (FEN)
+      description: >-
+        If the bug is tied to a specific position, paste its FEN. If you have
+        the move list instead, put it in the steps above.
+      placeholder: r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3
+
+  - type: dropdown
+    id: screen
+    attributes:
+      label: Where did it happen?
+      options:
+        - Play vs AI
+        - Analysis board
+        - Game setup
+        - Landing page
+        - Elsewhere / not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: level
+    attributes:
+      label: Engine strength
+      description: Only relevant for bugs during a game against the AI.
+      options:
+        - Not applicable
+        - 1 — Beginner (~800)
+        - 2 — Novice (~1000)
+        - 3 — Casual (~1200)
+        - 4 — Club (1500)
+        - 5 — Intermediate (1800)
+        - 6 — Advanced (2100)
+        - 7 — Expert (2500)
+        - 8 — Full strength
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS (Apple silicon)
+        - macOS (Intel)
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: The version of the installer you downloaded, or the commit if running from source.
+      placeholder: 1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How are you running it?
+      options:
+        - Installed build from a release
+        - From source (npm run dev)
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: >-
+        Screenshots, console output (View → Toggle Developer Tools in a dev
+        build), or anything else that seems relevant.

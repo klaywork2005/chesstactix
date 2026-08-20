@@ -1,0 +1,14 @@
+{
+  // TypeDoc-only program: the app is built as two separate TS programs
+  // (node + web) that cannot see each other, but the API reference should
+  // cover both. Type checking is off here (skipErrorChecking in typedoc.json)
+  // -- `npm run typecheck` is what validates the real programs.
+  "extends": "./tsconfig.web.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "types": ["node", "electron-vite/node"]
+  },
+  "files": ["src/preload/index.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

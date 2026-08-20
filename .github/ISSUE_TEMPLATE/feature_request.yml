@@ -1,0 +1,50 @@
+name: Feature request
+description: Suggest something ChessTactix should be able to do
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ChessTactix is deliberately a local, offline, no-account app. Requests
+        that fit that shape are much likelier to land than ones requiring
+        online play, accounts, or telemetry.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is the problem?
+      description: >-
+        Describe what you are trying to do and where the app gets in the way.
+        Start here rather than with the solution — the underlying problem often
+        has a better answer than the first idea for it.
+      placeholder: >-
+        After a game I want to find where I went wrong, but I have to step
+        through every move manually and read the eval each time.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to see?
+      placeholder: >-
+        A game review that walks the whole game once and flags the moves where
+        the evaluation dropped the most.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you have considered
+      description: Including whether anything in the app already comes close.
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This works entirely offline, with no account and no network calls.
+          required: true
+        - label: I have checked the existing issues for something similar.
+          required: true

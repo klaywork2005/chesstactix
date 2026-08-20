@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+
+# Build output
+#   out/   -- electron-vite's compiled main/preload/renderer bundles
+#   dist/  -- electron-builder's packaged apps and installers
+out/
+dist/
+*.asar
+
+# TypeScript incremental build state
+*.tsbuildinfo
+
+# Tool caches
+.eslintcache
+.cache/
+.parcel-cache/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Generated API documentation (rebuild with `npm run docs`)
+docs/api/
+
+# Local environment overrides -- never commit real secrets or signing config
+.env
+.env.*
+!.env.example
+dev-app-update.yml
+
+# Code-signing material. These must stay out of the repository: anyone with
+# them can ship a build that claims to be this app.
+*.p12
+*.pfx
+*.mobileprovision
+
+# OS cruft
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Editor state. .vscode/ is deliberately NOT ignored -- the debug launch
+# configs and extension recommendations in it are shared project setup.
+.idea/
+*.swp
+*.swo
+*~
