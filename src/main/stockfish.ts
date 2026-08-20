@@ -1,3 +1,14 @@
+/**
+ * The UCI driver: the only module in the app that talks to Stockfish.
+ *
+ * Owns one lazily-created engine instance, the queue that serialises access to
+ * it, and the strength ladder the AI opponent plays at. Runs in the main
+ * process because the `stockfish` package is a Node module; the renderer
+ * reaches it only through the two IPC channels in `./index`.
+ *
+ * @packageDocumentation
+ */
+
 import stockfish from 'stockfish'
 
 // Mirrored in src/preload/index.d.ts and src/renderer/src/types.ts, since
@@ -6,8 +17,17 @@ import stockfish from 'stockfish'
 // owns only what the engine needs to actually play at them.
 type StrengthLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 
+/**
+ * The slice of the `stockfish` package's runtime object this module uses.
+ *
+ * Hand-written because the package ships no types. Note that `listener` is a
+ * single slot rather than a subscriber list -- that one detail is why every
+ * request has to be queued.
+ */
 type StockfishEngine = {
+  /** Called once per line the engine emits. Assigning replaces the previous handler. */
   listener: ((line: string) => void) | null
+  /** Writes one UCI command to the engine. Fire-and-forget; replies arrive via `listener`. */
   sendCommand: (command: string) => void
 }
 
@@ -24,11 +44,15 @@ type StockfishEngine = {
 //   scale approximate.
 //
 // `depth` is always set: an unbounded `go` has no time control to stop it.
+/** How the engine is configured to play at one rung of the ladder. */
 type StrengthPreset = {
+  /** Approximate rating this rung plays at. Display only; the engine never sees it. */
   elo: number
+  /** Search depth cap in plies. Always set -- an unbounded `go` never stops on its own. */
   depth: number
-  // when null, the engine plays at full strength and Skill Level applies
+  /** Target Elo for `UCI_LimitStrength`, or `null` to leave the limiter off. */
   uciElo: number | null
+  /** Stockfish's own 0-20 handicap. Only meaningful when `uciElo` is `null`. */
   skillLevel: number
 }
 
@@ -43,9 +67,15 @@ const STRENGTH_PRESETS: Record<StrengthLevel, StrengthPreset> = {
   8: { elo: 3190, depth: 16, uciElo: null, skillLevel: 20 }
 }
 
-// Every strength-affecting option is sticky across commands on a reused
-// engine instance, so each search has to state all of them rather than
-// assume whatever the previous caller left behind.
+/**
+ * Writes a preset's strength options to the engine.
+ *
+ * Every strength-affecting option is sticky across commands on a reused engine
+ * instance, so each search must state all of them rather than assume whatever
+ * the previous caller left behind. `UCI_LimitStrength` is set explicitly to
+ * `false` for the Skill Level rungs for exactly that reason -- without it, a
+ * level-1 search following a level-5 one would inherit the limiter.
+ */
 function applyStrength(engine: StockfishEngine, preset: StrengthPreset): void {
   engine.sendCommand(`setoption name Skill Level value ${preset.skillLevel}`)
   engine.sendCommand(`setoption name UCI_LimitStrength value ${preset.uciElo !== null}`)
@@ -62,6 +92,12 @@ let enginePromise: Promise<StockfishEngine> | null = null
 // would clobber each other's callbacks. This queue serializes them.
 let queue: Promise<unknown> = Promise.resolve()
 
+/**
+ * Loads the engine and completes the UCI handshake.
+ *
+ * Resolves only once the engine has reported `readyok`, so callers never have
+ * to check whether it is usable yet.
+ */
 async function initEngine(): Promise<StockfishEngine> {
   // 'lite-single' avoids the worker_threads/SharedArrayBuffer setup the
   // full multi-threaded build needs, at the cost of some engine strength --
@@ -84,6 +120,12 @@ async function initEngine(): Promise<StockfishEngine> {
   return engine
 }
 
+/**
+ * Returns the shared engine, starting it on first use.
+ *
+ * Memoises the *promise*, not the engine, so concurrent first callers all await
+ * the same initialisation instead of racing to start two engines.
+ */
 function getEngine(): Promise<StockfishEngine> {
   if (!enginePromise) {
     enginePromise = initEngine()
@@ -91,6 +133,13 @@ function getEngine(): Promise<StockfishEngine> {
   return enginePromise
 }
 
+/**
+ * Resolves with the move from the engine's next `bestmove` line.
+ *
+ * Installed *before* the `go` command is sent, so the listener is already in
+ * place if the engine replies immediately -- at depth 1 it very nearly does.
+ * Clears itself once matched, leaving the slot free for the next request.
+ */
 function waitForBestMove(engine: StockfishEngine): Promise<string | null> {
   return new Promise((resolve) => {
     engine.listener = (line: string) => {
@@ -103,6 +152,7 @@ function waitForBestMove(engine: StockfishEngine): Promise<string | null> {
   })
 }
 
+/** Body of one queued {@link getBestMove} request. Never called concurrently. */
 async function requestBestMove(fen: string, level: StrengthLevel): Promise<string | null> {
   const engine = await getEngine()
   const preset = STRENGTH_PRESETS[level]
@@ -158,6 +208,13 @@ export type EngineLine = {
   pv: string[]
 }
 
+/**
+ * Body of one queued {@link analyzePosition} request. Never called concurrently.
+ *
+ * The engine reports each candidate line repeatedly as the search deepens, so
+ * results are collected into a Map keyed by `multipv` rank: later, deeper
+ * reports overwrite earlier shallow ones and only the final state is returned.
+ */
 async function requestAnalysis(fen: string, multiPv: number, depth: number): Promise<EngineLine[]> {
   const engine = await getEngine()
   const lines = new Map<number, EngineLine>()

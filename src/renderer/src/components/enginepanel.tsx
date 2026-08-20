@@ -4,23 +4,36 @@ import { formatEvaluation, pvToSan, whiteShare } from '../utils/engine'
 import type { EngineLine } from '../types'
 
 type EnginePanelProps = {
-  // the position the lines were searched from, needed to render them as SAN
+  /** The position the lines were searched from. Needed to render the PVs as SAN. */
   position: string
+  /** Whose turn it is, so scores can be flipped to White's perspective. */
   sideToMove: 'w' | 'b'
-  // best line first; already filtered to the ones worth showing
+  /** Candidate lines, best first, already filtered to the ones worth showing. */
   lines: EngineLine[]
-  // arrow color per rank, shared with the board so the dot next to a line
-  // matches the arrow drawn for it
+  /**
+   * Arrow colour per rank, shared with the board so the dot beside a line
+   * matches the arrow drawn for it. Indexed by position in `lines`, with the
+   * last colour reused if there are more lines than colours.
+   */
   rankColors: string[]
+  /** Whether a search is in flight, which pulses the status dot. */
   isAnalyzing: boolean
+  /** Whether the position is finished, in which case there is nothing to evaluate. */
   isGameOver: boolean
+  /** Status text passed through to StatusPanel. */
   status: string
+  /** Search depth, shown as `d16` beside the evaluation. */
   depth: number
 }
 
-// A horizontal eval bar. White's share of the bar fills from the left, so the
-// split point sits where the evaluation does -- centered at equality, sliding
-// toward whoever is better.
+/**
+ * A horizontal eval bar.
+ *
+ * White's share fills from the left, so the split point sits where the
+ * evaluation does -- centred at equality, sliding toward whoever is better.
+ *
+ * @param share - Fill fraction from `whiteShare`, in `[0, 1]`.
+ */
 const EvalBar = ({ share }: { share: number }): React.JSX.Element => (
   <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
     <div
@@ -30,6 +43,16 @@ const EvalBar = ({ share }: { share: number }): React.JSX.Element => (
   </div>
 )
 
+/**
+ * The analysis board's right-hand rail: status, evaluation, and best lines.
+ *
+ * Everything here is derived from `lines[0]` -- the engine's own best -- rather
+ * than from a separate evaluation call, so the headline number, the bar, and
+ * the first listed line can never disagree with each other.
+ *
+ * A finished position shows an em dash and a centred bar rather than a stale
+ * evaluation: the caller passes an empty `lines` array once the game is over.
+ */
 const EnginePanel = ({
   position,
   sideToMove,

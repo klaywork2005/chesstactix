@@ -34,6 +34,19 @@ const GOOD_ENOUGH_MARGIN_CP = 50
 // having to consult the panel.
 const RANK_COLORS = ['rgb(34, 197, 94)', 'rgb(56, 189, 248)', 'rgb(148, 163, 184)']
 
+/**
+ * The analysis board: a free board that re-evaluates itself as you move.
+ *
+ * Built from the same parts as the play screen -- board, controls, move list,
+ * history model -- but with no opponent. Both sides are played by hand, and
+ * every position reached, whether by playing a move or by navigating back
+ * through the game, triggers a fresh MultiPV search.
+ *
+ * Because there is no opponent racing the board, navigation is never locked.
+ * Staleness is handled instead by an incrementing request id: rapidly clicking
+ * through history starts several searches, and only the newest is allowed to
+ * write its result.
+ */
 const Analysis = (): React.JSX.Element => {
   // linear position history + a viewIndex pointer into it (see the hook for
   // the full undo/redo model). Analysis has no async opponent racing the
@@ -93,6 +106,13 @@ const Analysis = (): React.JSX.Element => {
   // resolves, the same role isThinkingRef plays in chessgame.tsx.
   const analysisRequestIdRef = useRef(0)
 
+  /**
+   * Searches `fen` and stores the result, unless a newer search has begun.
+   *
+   * `requestId` is compared in both the success and the `finally` path, so a
+   * superseded search can neither overwrite the current lines nor clear the
+   * spinner that belongs to the newer one.
+   */
   async function runAnalysis(fen: string, requestId: number): Promise<void> {
     setIsAnalyzing(true)
 
@@ -126,23 +146,28 @@ const Analysis = (): React.JSX.Element => {
     runAnalysis(position, requestId)
   }, [position])
 
-  // get the move options for a square to show valid moves
+  /**
+   * Highlights every legal destination for a square, for click-to-move.
+   *
+   * @returns Whether the square had any legal moves. The callers use this to
+   * decide whether the click counts as selecting a piece -- clicking a pinned
+   * piece with nowhere to go should not arm a move.
+   */
   function getMoveOptions(square: Square): boolean {
     const moves = chessGame.moves({
       square,
       verbose: true
     })
 
-    // if no moves, clear the option squares
     if (moves.length === 0) {
       setOptionSquares({})
       return false
     }
 
-    // create a new object to store the option squares
+    // Built fresh rather than merged into the previous highlights, so the old
+    // selection's dots cannot survive into the new one.
     const newSquares: Record<string, React.CSSProperties> = {}
 
-    // loop through the moves and set the option squares
     for (const move of moves) {
       const targetPiece = chessGame.get(move.to as Square)
       const sourcePiece = chessGame.get(square)
@@ -161,12 +186,12 @@ const Analysis = (): React.JSX.Element => {
           }
     }
 
-    // set the square clicked to move from — same opaque-ring trick
+    // The selected square itself — same opaque-ring trick, so the piece the
+    // user picked up stays fully visible.
     newSquares[square] = {
       boxShadow: 'inset 0 0 0 4px rgb(250, 204, 21)'
     }
 
-    // set the option squares
     setOptionSquares(newSquares)
 
     return true
@@ -206,7 +231,8 @@ const Analysis = (): React.JSX.Element => {
   }
 
   function onSquareClick({ square, piece }: SquareHandlerArgs): void {
-    // piece clicked to move
+    // First click: arm a move from this square, but only if the piece on it
+    // actually has somewhere to go.
     if (!moveFrom && piece) {
       const hasMoveOptions = getMoveOptions(square as Square)
 
@@ -217,14 +243,16 @@ const Analysis = (): React.JSX.Element => {
       return
     }
 
-    // square clicked to move to, check if valid move
+    // Second click: is this square a legal destination from the armed one?
     const moves = chessGame.moves({
       square: moveFrom as Square,
       verbose: true
     })
     const foundMove = moves.find((m) => m.from === moveFrom && m.to === square)
 
-    // not a valid move
+    // Not a destination, so treat the click as selecting a different piece
+    // instead of as a failed move -- otherwise switching pieces would take two
+    // clicks, one to clear and one to select.
     if (!foundMove) {
       const hasMoveOptions = getMoveOptions(square as Square)
       setMoveFrom(hasMoveOptions ? square : '')
@@ -239,7 +267,8 @@ const Analysis = (): React.JSX.Element => {
       return
     }
 
-    // is normal move
+    // An ordinary move. If it somehow fails anyway, fall back to re-selecting,
+    // so a rejected click never leaves the board with a stale armed square.
     if (!pushMove({ from: moveFrom, to: square })) {
       const hasMoveOptions = getMoveOptions(square as Square)
       if (hasMoveOptions) {
@@ -248,6 +277,9 @@ const Analysis = (): React.JSX.Element => {
     }
   }
 
+  // Clearing the lines is not redundant with `reset()`: the effect above skips
+  // the search on a game-over position, so without this an old evaluation could
+  // outlive the position it described.
   function handleReset(): void {
     reset()
     setEngineLines([])
@@ -267,6 +299,8 @@ const Analysis = (): React.JSX.Element => {
           (line) => bestScore - comparableScore(line) <= GOOD_ENOUGH_MARGIN_CP
         )
 
+  // One arrow per good line, coloured to match its marker in the panel. A line
+  // with an empty PV is dropped rather than drawn from a1 to a1.
   const arrows: Arrow[] = goodLines
     .map((line, i) => {
       const move = line.pv[0]
@@ -281,7 +315,6 @@ const Analysis = (): React.JSX.Element => {
     })
     .filter((arrow): arrow is Arrow => arrow !== null)
 
-  // set the chessboard options
   const chessboardOptions = {
     position,
     squareStyles: optionSquares,
@@ -295,6 +328,8 @@ const Analysis = (): React.JSX.Element => {
     id: 'analysis-board'
   }
 
+  // Same precedence as the play screen: result first, then engine activity,
+  // then where in the game the board is sitting.
   const status = chessGame.isGameOver()
     ? gameOverLabel(chessGame)
     : isAnalyzing

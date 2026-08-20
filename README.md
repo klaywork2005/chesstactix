@@ -58,17 +58,17 @@ about your games leaves the machine.
 Download an installer for your platform from the
 [latest release](https://github.com/klaywork2005/chesstactix/releases/latest):
 
-| Platform | File | Notes |
-| --- | --- | --- |
-| Windows | `ChessTactix-<version>-setup.exe` | NSIS wizard, per-user install — no admin prompt |
-| macOS | `ChessTactix-<version>-<arch>.dmg` | Separate `arm64` and `x64` builds |
-| Linux | `ChessTactix-<version>-<arch>.AppImage` | Portable; `chmod +x` then run |
-| Linux (Debian/Ubuntu) | `ChessTactix-<version>-<arch>.deb` | `sudo apt install ./ChessTactix-*.deb` |
+| Platform              | File                                    | Notes                                           |
+| --------------------- | --------------------------------------- | ----------------------------------------------- |
+| Windows               | `ChessTactix-<version>-setup.exe`       | NSIS wizard, per-user install — no admin prompt |
+| macOS                 | `ChessTactix-<version>-<arch>.dmg`      | Separate `arm64` and `x64` builds               |
+| Linux                 | `ChessTactix-<version>-<arch>.AppImage` | Portable; `chmod +x` then run                   |
+| Linux (Debian/Ubuntu) | `ChessTactix-<version>-<arch>.deb`      | `sudo apt install ./ChessTactix-*.deb`          |
 
 > [!NOTE]
 > Builds are **not code-signed**. Windows SmartScreen will show a "Windows
-> protected your PC" notice (choose *More info → Run anyway*) and macOS
-> Gatekeeper will refuse the first launch (right-click the app → *Open*). This
+> protected your PC" notice (choose _More info → Run anyway_) and macOS
+> Gatekeeper will refuse the first launch (right-click the app → _Open_). This
 > is expected until signing certificates are configured, and is documented in
 > [docs/RELEASING.md](docs/RELEASING.md#code-signing).
 
@@ -126,43 +126,43 @@ explains the constraint and where the duplicates live.
 
 ## Available scripts
 
-| Script | What it does |
-| --- | --- |
-| `npm run dev` | Start the app with HMR |
-| `npm start` | Preview the last production build |
-| `npm run build` | Typecheck, then build all three bundles into `out/` |
-| `npm run typecheck` | Typecheck both TS programs (`:node` and `:web` run individually) |
-| `npm run lint` | ESLint across the repo, Prettier rules included |
-| `npm run format` | Rewrite the repo with Prettier |
-| `npm run docs` | Generate the TypeDoc API reference into `docs/api/` |
-| `npm run build:win` | Windows NSIS installer → `dist/` |
-| `npm run build:mac` | macOS `.dmg` + `.zip` → `dist/` |
-| `npm run build:linux` | Linux `.AppImage` + `.deb` → `dist/` |
-| `npm run build:unpack` | Runnable unpacked app, no installer → `dist/win-unpacked/` |
+| Script                 | What it does                                                     |
+| ---------------------- | ---------------------------------------------------------------- |
+| `npm run dev`          | Start the app with HMR                                           |
+| `npm start`            | Preview the last production build                                |
+| `npm run build`        | Typecheck, then build all three bundles into `out/`              |
+| `npm run typecheck`    | Typecheck both TS programs (`:node` and `:web` run individually) |
+| `npm run lint`         | ESLint across the repo, Prettier rules included                  |
+| `npm run format`       | Rewrite the repo with Prettier                                   |
+| `npm run docs`         | Generate the TypeDoc API reference into `docs/api/`              |
+| `npm run build:win`    | Windows NSIS installer → `dist/`                                 |
+| `npm run build:mac`    | macOS `.dmg` + `.zip` → `dist/`                                  |
+| `npm run build:linux`  | Linux `.AppImage` + `.deb` → `dist/`                             |
+| `npm run build:unpack` | Runnable unpacked app, no installer → `dist/win-unpacked/`       |
 
 Each installer must be built on the OS it targets. To produce all three at once,
 push a `v*` tag and let CI do it — see [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Documentation
 
-| Document | Covers |
-| --- | --- |
+| Document                                     | Covers                                                             |
+| -------------------------------------------- | ------------------------------------------------------------------ |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Process model, the IPC path, engine lifecycle, renderer state flow |
-| [docs/RELEASING.md](docs/RELEASING.md) | Cutting a release, the tag→installer pipeline, signing |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Setup, code style, the checks a PR must pass |
-| [CHANGELOG.md](CHANGELOG.md) | Notable changes, newest first |
-| `docs/api/` | TypeDoc reference, generated on demand with `npm run docs` |
+| [docs/RELEASING.md](docs/RELEASING.md)       | Cutting a release, the tag→installer pipeline, signing             |
+| [CONTRIBUTING.md](CONTRIBUTING.md)           | Setup, code style, the checks a PR must pass                       |
+| [CHANGELOG.md](CHANGELOG.md)                 | Notable changes, newest first                                      |
+| `docs/api/`                                  | TypeDoc reference, generated on demand with `npm run docs`         |
 
 ## Tech stack
 
-| Layer | Choice |
-| --- | --- |
-| Shell | [Electron](https://www.electronjs.org/) 39, [electron-vite](https://electron-vite.org/) 5 |
-| UI | [React](https://react.dev/) 19, [Tailwind CSS](https://tailwindcss.com/) 4, [react-chessboard](https://github.com/Clariity/react-chessboard) 5 |
-| Rules | [chess.js](https://github.com/jhlywa/chess.js) — move generation, legality, SAN, FEN |
-| Engine | [Stockfish](https://stockfishchess.org/) 18, `lite-single` WebAssembly build, driven over UCI |
-| Packaging | [electron-builder](https://www.electron.build/) 26 |
-| Quality | TypeScript 5.9 (strict), ESLint 9, Prettier 3 |
+| Layer     | Choice                                                                                                                                         |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shell     | [Electron](https://www.electronjs.org/) 39, [electron-vite](https://electron-vite.org/) 5                                                      |
+| UI        | [React](https://react.dev/) 19, [Tailwind CSS](https://tailwindcss.com/) 4, [react-chessboard](https://github.com/Clariity/react-chessboard) 5 |
+| Rules     | [chess.js](https://github.com/jhlywa/chess.js) — move generation, legality, SAN, FEN                                                           |
+| Engine    | [Stockfish](https://stockfishchess.org/) 18, `lite-single` WebAssembly build, driven over UCI                                                  |
+| Packaging | [electron-builder](https://www.electron.build/) 26                                                                                             |
+| Quality   | TypeScript 5.9 (strict), ESLint 9, Prettier 3                                                                                                  |
 
 ## Licensing
 

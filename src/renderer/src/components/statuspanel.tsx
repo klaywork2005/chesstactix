@@ -1,16 +1,18 @@
 import Panel from './panel'
 
 type StatusPanelProps = {
-  // what the screen is doing right now: "Your move", "Analyzing…", or the
-  // game-over result
+  /** What the screen is doing: `'Your move'`, `'Analyzing…'`, or the game-over result. */
   status: string
-  // true while the engine is working, so the dot pulses
+  /** Whether the engine is working, which makes the dot pulse. */
   isBusy: boolean
 }
 
-// The status line at the top of the right-hand rail. Shared verbatim by the
-// play screen and the analysis screen so the two read as the same app -- the
-// only difference between them is the text each one feeds in.
+/**
+ * The status line at the top of the right-hand rail.
+ *
+ * Shared verbatim by the play and analysis screens so the two read as the same
+ * app; the only difference between them is the text each feeds in.
+ */
 const StatusPanel = ({ status, isBusy }: StatusPanelProps): React.JSX.Element => {
   return (
     <Panel label="Status">

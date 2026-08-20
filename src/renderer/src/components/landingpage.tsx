@@ -2,10 +2,13 @@ import { Chessboard } from 'react-chessboard'
 import { STRENGTH_LEVELS } from '../utils/strength'
 
 type LandingPageProps = {
+  /** Opens the game setup screen. */
   onLandingPagePlayButtonClick: () => void
 }
 
-// Landing page chess game
+// The Italian Game after 3.Bc4 -- a recognisable, visibly developed opening
+// rather than a starting position, so the hero board looks like a game in
+// progress at a glance.
 const HERO_POSITION = 'r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3'
 
 const CAPABILITIES: { term: string; detail: string }[] = [
@@ -30,6 +33,14 @@ const CAPABILITIES: { term: string; detail: string }[] = [
   }
 ]
 
+/**
+ * The first screen: what the app is, and a way into it.
+ *
+ * The only scrolling view in the app -- every other screen is sized to fit one
+ * window. The strength ladder section is built from the same
+ * {@link STRENGTH_LEVELS} table the setup slider uses, so the marketing copy
+ * cannot drift away from what the engine actually plays at.
+ */
 const LandingPage = ({ onLandingPagePlayButtonClick }: LandingPageProps): React.JSX.Element => {
   return (
     <div className="flex w-full max-w-[88rem] flex-col px-10">

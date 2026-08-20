@@ -1,3 +1,6 @@
 {
+  // Prompted on first open. ESLint is the one extension that matters here:
+  // it surfaces the Prettier violations inline, since formatting is enforced
+  // as lint errors rather than as a separate check.
   "recommendations": ["dbaeumer.vscode-eslint"]
 }

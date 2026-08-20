@@ -1,4 +1,9 @@
+# Formatting is not a matter of opinion in this repo -- Prettier owns it, and
+# eslint-config-prettier reports violations as lint problems so `npm run lint`
+# catches anything `npm run format` has not yet fixed.
 singleQuote: true
 semi: false
+# Wide enough that the long Tailwind class strings in the components do not wrap
+# into unreadable columns.
 printWidth: 100
 trailingComma: none

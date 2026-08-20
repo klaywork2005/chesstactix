@@ -8,10 +8,21 @@ import GameSetup from './components/gamesetup'
 import Analysis from './components/analysis'
 import type { AiOptions } from './types'
 
+/** The four screens the app can show. There is no router; this union is it. */
 type View = 'landing' | 'setup' | 'ai' | 'analysis'
 
+/**
+ * Root component: the header, the background, and whichever screen is active.
+ *
+ * Holds the only genuinely cross-screen state -- the {@link AiOptions} chosen
+ * during setup, which the game screen then plays under. Everything else lives
+ * in the screen that owns it, or in `useChessHistory` / `useBoardScale`.
+ */
 const App = (): React.JSX.Element => {
   const [view, setView] = useState<View>('landing')
+  // Kept here rather than in GameSetup so the choices survive leaving the setup
+  // screen: starting a game unmounts it, and "New Game" returns to it with the
+  // previous level and colour still selected.
   const [aiOptions, setAiOptions] = useState<AiOptions>({
     level: 3,
     playerColor: 'white'

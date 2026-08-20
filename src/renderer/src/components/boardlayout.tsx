@@ -1,12 +1,18 @@
 import { useElementSize } from '../hooks/useElementSize'
 
 type BoardLayoutProps = {
+  /** Contents of the left rail -- the move list, on both screens. */
   left: React.ReactNode
+  /** Contents of the right rail: game info when playing, engine lines when analysing. */
   right: React.ReactNode
+  /** The control bar drawn under the board. Measured, so its height need not be known here. */
   controls: React.ReactNode
-  // fraction of the largest board that fits to actually draw, from the board
-  // size slider in the control bar. 1 is the full fit.
+  /**
+   * Fraction of the largest board that fits to actually draw, from the size
+   * slider in the control bar. `1` is the full fit.
+   */
   scale: number
+  /** The board itself, plus any overlay positioned against it. */
   children: React.ReactNode
 }
 
@@ -35,19 +41,24 @@ const BOARD_FLOOR = 320
 // it has not been measured yet
 const CONTROLS_FALLBACK = 44
 
+/** Constrains a value to an inclusive range. */
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
 
-// The three-column game screen: a square board with a rail either side of it.
-//
-// Every size here is computed from the space actually measured on screen
-// rather than from viewport arithmetic, because the board has to satisfy two
-// constraints at once -- fit the width left over by the rails, and fit the
-// height left over by the header and the control bar -- and CSS alone can only
-// express one of those for a square. Measuring gives the board `min(...)` of
-// both, and lets the rails be pinned to exactly the board's height and hug its
-// edges, so the three columns stay one block at any window size.
+/**
+ * The three-column game screen: a square board with a rail either side of it.
+ *
+ * Every size here is computed from space measured on screen rather than from
+ * viewport arithmetic, because the board must satisfy two constraints at once
+ * -- fit the width the rails leave, and fit the height the header and control
+ * bar leave -- and CSS alone can express only one of those for a square element.
+ * Measuring gives the board `min(...)` of both, and lets the rails be pinned to
+ * exactly the board's height, so the three columns stay one block at any window
+ * size.
+ *
+ * Used by both board screens, which differ only in what they pass as `right`.
+ */
 const BoardLayout = ({
   left,
   right,

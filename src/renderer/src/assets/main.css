@@ -1,3 +1,11 @@
+/* The app's only stylesheet.
+   Tailwind covers everything the components need inline; what lives here is the
+   handful of things utility classes cannot express -- a custom @utility, the
+   document-level scrollbar, and the hand-drawn range input used by both
+   sliders. Imported once from App.tsx.
+
+   Font Awesome is imported rather than linked so the icon fonts are bundled:
+   the packaged renderer loads from file:// and must not depend on a CDN. */
 @import 'tailwindcss';
 @import '@fortawesome/fontawesome-free/css/all.min.css';
 

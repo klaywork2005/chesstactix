@@ -12,7 +12,9 @@ import { gameOverLabel } from '../utils/gamestatus'
 import type { AiOptions } from '../types'
 
 type ChessGameProps = {
+  /** Strength and colour chosen at setup. Fixed for the life of the game. */
   aiOptions: AiOptions
+  /** Returns to the setup screen, which is how a new game is started. */
   onNewGame: () => void
 }
 
@@ -21,6 +23,19 @@ type ChessGameProps = {
 // the opening move (when the player chose to play Black).
 const AI_MOVE_DELAY_MS = 300
 
+/**
+ * The play screen: a game against Stockfish at a fixed strength.
+ *
+ * Shares its board, controls, move list and history model with the analysis
+ * screen; what makes this one different is the opponent. Every position change
+ * is checked, and if it is the engine's turn at the live head a move is
+ * requested over IPC and played after a short delay.
+ *
+ * Two guards keep that async opponent from corrupting the board. Navigation is
+ * disabled while a request is in flight, so the reply always lands on the
+ * position it was asked about; and `isThinkingRef` blocks a second request from
+ * starting, which matters because effects double-invoke under StrictMode.
+ */
 const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps): React.JSX.Element => {
   // whether we're waiting on the Stockfish engine (main process) for a move
   const [isThinking, setIsThinking] = useState(false)
@@ -78,8 +93,17 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps): React.JSX.Element 
 
   const playerColorLetter = aiOptions.playerColor === 'white' ? 'w' : 'b'
 
-  // ask the Stockfish engine (running in the main process, via IPC) for a
-  // move in the given position and play it
+  /**
+   * Asks the engine for a move in `fen` and plays it.
+   *
+   * The ref guard is checked rather than the state, because state updates are
+   * not visible until the next render and two effect runs in the same tick
+   * would both see `isThinking` as false.
+   *
+   * A failed search is logged and swallowed: the turn simply stays with the
+   * engine, and starting a new game is the way out. Throwing here would take
+   * the whole screen down mid-game.
+   */
   async function makeAiMove(fen: string): Promise<void> {
     if (isThinkingRef.current) {
       return
@@ -106,9 +130,13 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps): React.JSX.Element 
     }
   }
 
-  // whenever it becomes the AI's turn at the live position -- whether
-  // because the player just moved, or because the player chose to play
-  // Black and the AI has to open -- let it respond after a short delay.
+  // Drives the opponent. Runs on every position change and does nothing unless
+  // it is genuinely the engine's turn at the live head -- which covers both
+  // replying to the player and opening the game when the player chose Black.
+  //
+  // The cleanup cancels a pending reply if the position changes first, so
+  // navigating history mid-delay does not fire a move for a position no longer
+  // on screen.
   useEffect(() => {
     if (!isAtLive || chessGame.isGameOver() || chessGame.turn() === playerColorLetter) {
       return
@@ -122,23 +150,28 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps): React.JSX.Element 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position, isAtLive])
 
-  // get the move options for a square to show valid moves
+  /**
+   * Highlights every legal destination for a square, for click-to-move.
+   *
+   * @returns Whether the square had any legal moves. The callers use this to
+   * decide whether the click counts as selecting a piece -- clicking a pinned
+   * piece with nowhere to go should not arm a move.
+   */
   function getMoveOptions(square: Square): boolean {
     const moves = chessGame.moves({
       square,
       verbose: true
     })
 
-    // if no moves, clear the option squares
     if (moves.length === 0) {
       setOptionSquares({})
       return false
     }
 
-    // create a new object to store the option squares
+    // Built fresh rather than merged into the previous highlights, so the old
+    // selection's dots cannot survive into the new one.
     const newSquares: Record<string, React.CSSProperties> = {}
 
-    // loop through the moves and set the option squares
     for (const move of moves) {
       const targetPiece = chessGame.get(move.to as Square)
       const sourcePiece = chessGame.get(square)
@@ -159,13 +192,12 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps): React.JSX.Element 
           }
     }
 
-    // set the square clicked to move from — same opaque-ring trick, so the
-    // selected piece stays fully visible instead of being tinted yellow.
+    // The selected square itself — same opaque-ring trick, so the piece the
+    // user picked up stays fully visible instead of being tinted yellow.
     newSquares[square] = {
       boxShadow: 'inset 0 0 0 4px rgb(250, 204, 21)'
     }
 
-    // set the option squares
     setOptionSquares(newSquares)
 
     return true
@@ -212,7 +244,8 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps): React.JSX.Element 
       return
     }
 
-    // piece clicked to move
+    // First click: arm a move from this square, but only if the piece on it
+    // actually has somewhere to go.
     if (!moveFrom && piece) {
       const hasMoveOptions = getMoveOptions(square as Square)
 
@@ -223,14 +256,16 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps): React.JSX.Element 
       return
     }
 
-    // square clicked to move to, check if valid move
+    // Second click: is this square a legal destination from the armed one?
     const moves = chessGame.moves({
       square: moveFrom as Square,
       verbose: true
     })
     const foundMove = moves.find((m) => m.from === moveFrom && m.to === square)
 
-    // not a valid move
+    // Not a destination, so treat the click as selecting a different piece
+    // instead of as a failed move -- otherwise switching pieces would take two
+    // clicks, one to clear and one to select.
     if (!foundMove) {
       const hasMoveOptions = getMoveOptions(square as Square)
       setMoveFrom(hasMoveOptions ? square : '')
@@ -245,7 +280,8 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps): React.JSX.Element 
       return
     }
 
-    // is normal move
+    // An ordinary move. If it somehow fails anyway, fall back to re-selecting,
+    // so a rejected click never leaves the board with a stale armed square.
     if (!pushMove({ from: moveFrom, to: square })) {
       const hasMoveOptions = getMoveOptions(square as Square)
       if (hasMoveOptions) {
@@ -254,7 +290,6 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps): React.JSX.Element 
     }
   }
 
-  // set the chessboard options
   const chessboardOptions = {
     boardOrientation: aiOptions.playerColor,
     position,
@@ -271,6 +306,8 @@ const ChessGame = ({ aiOptions, onNewGame }: ChessGameProps): React.JSX.Element 
     id: 'play-vs-ai'
   }
 
+  // Ordered by precedence, not by likelihood: a finished game outranks a search
+  // still settling, and both outrank whose turn it is.
   const status = chessGame.isGameOver()
     ? gameOverLabel(chessGame)
     : isThinking

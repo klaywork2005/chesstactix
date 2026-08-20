@@ -1,8 +1,11 @@
 import chessLogo from '../assets/chesstactix-logo.svg'
 
 type HeaderProps = {
+  /** Returns to the landing page. */
   onHeaderLogoClick: () => void
+  /** Opens the game setup screen. */
   onPlayClick: () => void
+  /** Opens the analysis board. */
   onAnalyzeClick: () => void
 }
 
@@ -15,6 +18,14 @@ const CONTACT_MAILTO =
   '&body=' +
   encodeURIComponent('Hi Klay,')
 
+/**
+ * The persistent top bar: brand, source link, and the three-way nav.
+ *
+ * The logo is drawn as a CSS mask over a background colour rather than as an
+ * `<img>`, so a single monochrome SVG can be recoloured on hover without
+ * shipping a second asset. External links open in a new window, which
+ * `setWindowOpenHandler` in the main process turns into an OS-level open.
+ */
 const Header = ({
   onHeaderLogoClick,
   onPlayClick,

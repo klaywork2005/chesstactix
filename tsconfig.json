@@ -1,4 +1,7 @@
 {
+  // Solution file: no sources of its own, just references to the two real
+  // programs. `npm run typecheck` invokes each of them directly; this exists so
+  // editors and `tsc -b` see the whole project as one unit.
   "files": [],
   "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }]
 }

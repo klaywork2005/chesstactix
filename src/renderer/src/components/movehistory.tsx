@@ -2,19 +2,30 @@ import { useEffect, useRef } from 'react'
 import Panel from './panel'
 
 type MoveHistoryProps = {
-  // SAN, one entry per ply (index 0 = move 1 White, index 1 = move 1 Black, ...)
+  /** SAN, one entry per ply: index 0 is move 1 White, index 1 is move 1 Black. */
   moves: string[]
-  // history index of the displayed position: 0 is the start, so ply N is
-  // being viewed at viewIndex N + 1
+  /**
+   * History index of the displayed position. `0` is the starting position, so
+   * ply *N* is being viewed at `viewIndex` *N + 1* -- which is where the
+   * off-by-one conversions in this component come from.
+   */
   viewIndex: number
+  /** Jumps the board to a history index. Given `ply + 1`, per the offset above. */
   onSelectIndex: (index: number) => void
+  /** Blocks jumping while the engine owns the position. Defaults to `false`. */
   disabled?: boolean
 }
 
-// The game so far in standard notation, one row per full move. Clicking a ply
-// jumps the board to the position right after it, which makes this the primary
-// way to move around a game -- the prev/next buttons are just the keyboard-free
-// version of the same thing.
+/**
+ * The game so far in standard notation, one row per full move.
+ *
+ * Clicking a ply jumps the board to the position immediately after it, which
+ * makes this the primary way to move around a game -- the prev/next buttons and
+ * the arrow keys are just the pointer-free version of the same thing.
+ *
+ * The list follows the active ply as the game advances or history is navigated,
+ * so the current move is always on screen without the user scrolling.
+ */
 const MoveHistory = ({
   moves,
   viewIndex,
@@ -47,6 +58,9 @@ const MoveHistory = ({
     }
   }, [viewIndex, moves.length])
 
+  // Pair the flat ply list into display rows of White/Black. The trailing
+  // `null` covers a game ending on White's move, so the row keeps its columns
+  // instead of collapsing to a single cell.
   const rows: { number: number; plies: (number | null)[] }[] = []
   for (let i = 0; i < moves.length; i += 2) {
     rows.push({ number: i / 2 + 1, plies: [i, i + 1 < moves.length ? i + 1 : null] })

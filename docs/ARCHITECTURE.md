@@ -68,10 +68,10 @@ blank Electron window.
 `tsconfig.json` is a solution file with no sources of its own. It references two
 real programs:
 
-| Program | Config | Includes |
-| --- | --- | --- |
-| Node | `tsconfig.node.json` | `electron.vite.config.*`, `src/main/**`, `src/preload/**` |
-| Web | `tsconfig.web.json` | `src/renderer/src/**`, plus `src/preload/*.d.ts` |
+| Program | Config               | Includes                                                  |
+| ------- | -------------------- | --------------------------------------------------------- |
+| Node    | `tsconfig.node.json` | `electron.vite.config.*`, `src/main/**`, `src/preload/**` |
+| Web     | `tsconfig.web.json`  | `src/renderer/src/**`, plus `src/preload/*.d.ts`          |
 
 They do not overlap, and neither can import from the other's sources. That is
 deliberate — the renderer must not be able to reach into main-process code — but
@@ -85,7 +85,7 @@ it has one consequence worth knowing about before you "fix" it:
 > accidental duplication. The three definitions must be changed together; each
 > carries a comment naming the other two.
 
-The one type that *does* cross the boundary is the ambient `Window` declaration
+The one type that _does_ cross the boundary is the ambient `Window` declaration
 in `src/preload/index.d.ts`, which the web program pulls in explicitly. That is
 how the renderer knows `window.api` exists and what its signatures are.
 
@@ -96,10 +96,10 @@ both `tsconfig.web.json` and [electron.vite.config.ts](../electron.vite.config.t
 
 Two channels, both request/response via `invoke`/`handle`:
 
-| Channel | Renderer call | Returns |
-| --- | --- | --- |
-| `chess:getBestMove` | `window.api.getBestMove(fen, level)` | UCI move string (`"e2e4"`, `"e7e8q"`), or `null` if there are no legal moves |
-| `chess:analyzePosition` | `window.api.analyzePosition(fen, multiPv, depth)` | `EngineLine[]`, best line first |
+| Channel                 | Renderer call                                     | Returns                                                                      |
+| ----------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `chess:getBestMove`     | `window.api.getBestMove(fen, level)`              | UCI move string (`"e2e4"`, `"e7e8q"`), or `null` if there are no legal moves |
+| `chess:analyzePosition` | `window.api.analyzePosition(fen, multiPv, depth)` | `EngineLine[]`, best line first                                              |
 
 Positions cross as FEN strings and moves as UCI strings. Nothing structured is
 serialised, so there is no shared object model to keep in sync between the
@@ -128,7 +128,7 @@ promise chains every request end to end:
 
 ```ts
 const result = queue.then(() => requestBestMove(fen, level))
-queue = result.catch(() => undefined)   // a failed request must not stall the chain
+queue = result.catch(() => undefined) // a failed request must not stall the chain
 ```
 
 The `.catch()` is load-bearing: without it, one rejected search would poison the
@@ -156,16 +156,16 @@ lines with no `pv` are ignored.
 Eight rungs, built from two different mechanisms because neither one covers the
 whole range.
 
-| Level | Elo | Mechanism | Depth |
-| --- | --- | --- | --- |
-| 1 | ~800 | `Skill Level 0` | 1 |
-| 2 | ~1000 | `Skill Level 2` | 2 |
-| 3 | ~1200 | `Skill Level 4` | 3 |
-| 4 | 1500 | `UCI_LimitStrength` + `UCI_Elo 1500` | 16 |
-| 5 | 1800 | `UCI_LimitStrength` + `UCI_Elo 1800` | 16 |
-| 6 | 2100 | `UCI_LimitStrength` + `UCI_Elo 2100` | 16 |
-| 7 | 2500 | `UCI_LimitStrength` + `UCI_Elo 2500` | 16 |
-| 8 | ~3190 | unrestricted, `Skill Level 20` | 16 |
+| Level | Elo   | Mechanism                            | Depth |
+| ----- | ----- | ------------------------------------ | ----- |
+| 1     | ~800  | `Skill Level 0`                      | 1     |
+| 2     | ~1000 | `Skill Level 2`                      | 2     |
+| 3     | ~1200 | `Skill Level 4`                      | 3     |
+| 4     | 1500  | `UCI_LimitStrength` + `UCI_Elo 1500` | 16    |
+| 5     | 1800  | `UCI_LimitStrength` + `UCI_Elo 1800` | 16    |
+| 6     | 2100  | `UCI_LimitStrength` + `UCI_Elo 2100` | 16    |
+| 7     | 2500  | `UCI_LimitStrength` + `UCI_Elo 2500` | 16    |
+| 8     | ~3190 | unrestricted, `Skill Level 20`       | 16    |
 
 `UCI_LimitStrength` is Stockfish's own calibrated handicap, so levels 4–7 carry
 ratings the engine authors stand behind. But it bottoms out at **1320**, which is
@@ -223,12 +223,12 @@ Both compose the same parts — `BoardLayout`, `BoardControls`, `MoveHistory`,
 `PromotionDialog`, `useChessHistory`, `useBoardScale` — and differ only in what
 fills the right rail and what they do after a move.
 
-| | `chessgame.tsx` | `analysis.tsx` |
-| --- | --- | --- |
-| Right rail | `GameInfoPanel` — captures, material, opponent | `EnginePanel` — eval bar, candidate lines |
-| After a move | Request one best move at the game's level, play it after a 300 ms delay | Re-run a 3-line depth-16 search on the new position |
-| Board arrows | none | Best line, plus alternatives within 50 cp |
-| Destructive action | "New Game" → back to setup | "Reset Board" |
+|                    | `chessgame.tsx`                                                         | `analysis.tsx`                                      |
+| ------------------ | ----------------------------------------------------------------------- | --------------------------------------------------- |
+| Right rail         | `GameInfoPanel` — captures, material, opponent                          | `EnginePanel` — eval bar, candidate lines           |
+| After a move       | Request one best move at the game's level, play it after a 300 ms delay | Re-run a 3-line depth-16 search on the new position |
+| Board arrows       | none                                                                    | Best line, plus alternatives within 50 cp           |
+| Destructive action | "New Game" → back to setup                                              | "Reset Board"                                       |
 
 The AI delay is cosmetic — an instant reply reads as a bug rather than as an
 opponent.
@@ -261,7 +261,7 @@ easiest bug to introduce in this area, and it is invisible on White's move.
 purely from the position — counting what is missing against the starting counts —
 rather than from the move list. That is what lets the capture tray stay correct
 for any FEN, including one you navigated back to. Counts are clamped at zero
-because promotion can leave a side with *more* of a piece than it started with.
+because promotion can leave a side with _more_ of a piece than it started with.
 
 ## Layout and sizing
 
@@ -287,7 +287,7 @@ Two details are easy to break:
   render.
 
 The scale slider ranges 0.5–1.0 of the largest board that fits, so it can only
-ever scale *down* from the fit and can never push the board off screen.
+ever scale _down_ from the fit and can never push the board off screen.
 
 Every side-rail section is built from
 [Panel](../src/renderer/src/components/panel.tsx) — a tracked-out label over a

@@ -1,8 +1,14 @@
 {
+  // The Node program: main process, preload, and the build config itself.
+  // Deliberately cannot see src/renderer -- keeping the renderer out of reach
+  // of Node APIs is the point of the split, and is why the types shared across
+  // the IPC boundary are duplicated rather than imported.
   "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
   "include": ["electron.vite.config.*", "src/main/**/*", "src/preload/**/*"],
   "compilerOptions": {
     "composite": true,
+    // Ambient types for electron-vite's own config API and asset imports
+    // (e.g. `import icon from '...png?asset'` in src/main/index.ts).
     "types": ["electron-vite/node"]
   }
 }

@@ -1,9 +1,14 @@
+# Baseline editor settings, applied before any formatter runs. Prettier handles
+# the rest; this exists so files still land correctly in editors that format on
+# save without a Prettier plugin installed.
 root = true
 
 [*]
 charset = utf-8
 indent_style = space
 indent_size = 2
+# LF everywhere, matching .gitattributes. Without both, editing on Windows
+# silently rewrites whole files to CRLF and every diff becomes unreadable.
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true

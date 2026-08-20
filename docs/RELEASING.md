@@ -81,12 +81,12 @@ A type error stops the build before packaging starts.
 
 ## What each target produces
 
-| Target | Artifact | Details |
-| --- | --- | --- |
-| `nsis` | `ChessTactix-<version>-setup.exe` | Wizard, not one-click. Per-user (`perMachine: false`) so there is no UAC prompt. Creates desktop and Start Menu shortcuts, registers an uninstaller under Apps & features, and displays [build/license.txt](../build/license.txt) during setup. |
-| `dmg` / `zip` | `ChessTactix-<version>-<arch>.dmg` | Built for both `arm64` and `x64`. `notarize: false`. |
-| `AppImage` | `ChessTactix-<version>-<arch>.AppImage` | Portable single file; `chmod +x` and run. |
-| `deb` | `ChessTactix-<version>-<arch>.deb` | Category `Game`, with desktop-entry keywords for chess. |
+| Target        | Artifact                                | Details                                                                                                                                                                                                                                         |
+| ------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nsis`        | `ChessTactix-<version>-setup.exe`       | Wizard, not one-click. Per-user (`perMachine: false`) so there is no UAC prompt. Creates desktop and Start Menu shortcuts, registers an uninstaller under Apps & features, and displays [build/license.txt](../build/license.txt) during setup. |
+| `dmg` / `zip` | `ChessTactix-<version>-<arch>.dmg`      | Built for both `arm64` and `x64`. `notarize: false`.                                                                                                                                                                                            |
+| `AppImage`    | `ChessTactix-<version>-<arch>.AppImage` | Portable single file; `chmod +x` and run.                                                                                                                                                                                                       |
+| `deb`         | `ChessTactix-<version>-<arch>.deb`      | Category `Game`, with desktop-entry keywords for chess.                                                                                                                                                                                         |
 
 Publishing goes to the `klaywork2005/chesstactix` GitHub repository, configured
 under `publish:` in [electron-builder.yml](../electron-builder.yml).
@@ -97,10 +97,10 @@ Nothing is currently signed. The consequences are user-visible and should stay
 documented in the README until they change:
 
 - **Windows** — SmartScreen shows "Windows protected your PC" on first run.
-  Users must choose *More info → Run anyway*. Reputation accrues per-certificate,
+  Users must choose _More info → Run anyway_. Reputation accrues per-certificate,
   so an unsigned build never stops warning.
 - **macOS** — Gatekeeper refuses to open the app on first launch. Users must
-  right-click and choose *Open*. `notarize: false` is set for the same reason.
+  right-click and choose _Open_. `notarize: false` is set for the same reason.
 
 CI sets `CSC_IDENTITY_AUTO_DISCOVERY: false`. Without it, electron-builder
 searches for a signing identity on the macOS runner, fails to find one, and
@@ -109,10 +109,10 @@ errors out instead of producing an unsigned app.
 To start signing, provide the certificate to CI as secrets and remove that
 environment variable:
 
-| Platform | Secrets | electron-builder reads |
-| --- | --- | --- |
-| Windows | `WIN_CSC_LINK` (base64 `.pfx`), `WIN_CSC_KEY_PASSWORD` | automatically |
-| macOS | `CSC_LINK` (base64 `.p12`), `CSC_KEY_PASSWORD`, plus `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` for notarisation | automatically; set `notarize: true` |
+| Platform | Secrets                                                                                                                          | electron-builder reads              |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Windows  | `WIN_CSC_LINK` (base64 `.pfx`), `WIN_CSC_KEY_PASSWORD`                                                                           | automatically                       |
+| macOS    | `CSC_LINK` (base64 `.p12`), `CSC_KEY_PASSWORD`, plus `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` for notarisation | automatically; set `notarize: true` |
 
 > [!CAUTION]
 > Certificates and their passwords must never be committed. `.gitignore` blocks

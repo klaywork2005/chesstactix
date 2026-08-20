@@ -1,14 +1,23 @@
 import { BOARD_SCALE_STEP, MAX_BOARD_SCALE, MIN_BOARD_SCALE } from '../hooks/useBoardScale'
 
 type BoardSizeSliderProps = {
+  /** Current scale, between `MIN_BOARD_SCALE` and `MAX_BOARD_SCALE`. */
   scale: number
+  /** Called with the new scale as the slider moves. */
   onChange: (next: number) => void
 }
 
-// The board-size control in the middle of the control bar. Flanked by a small
-// and a large board icon rather than labelled with a number, because the value
-// is a share of the available space and not a measurement the user would have
-// any use for -- what matters is which way is bigger.
+/**
+ * The board-size control in the middle of the control bar.
+ *
+ * Flanked by a small and a large board icon rather than labelled with a number,
+ * because the value is a share of the available space rather than a measurement
+ * the user could act on -- what matters is which way is bigger. The percentage
+ * is still exposed to screen readers through `aria-valuetext`.
+ *
+ * The `--progress` custom property drives the filled portion of the track; the
+ * track and thumb themselves are drawn from scratch in `assets/main.css`.
+ */
 const BoardSizeSlider = ({ scale, onChange }: BoardSizeSliderProps): React.JSX.Element => {
   const progress = (scale - MIN_BOARD_SCALE) / (MAX_BOARD_SCALE - MIN_BOARD_SCALE)
 

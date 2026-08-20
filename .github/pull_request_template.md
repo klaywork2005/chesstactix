@@ -25,7 +25,7 @@ which screens you exercised, at which strength level, from which position.
 
 - [ ] `npm run typecheck` passes
 - [ ] `npm run lint` passes
-- [ ] Comments explain *why*, not what; exported API has TSDoc
+- [ ] Comments explain _why_, not what; exported API has TSDoc
 - [ ] `CHANGELOG.md` updated under `## [Unreleased]`, if a user would notice this
 - [ ] Docs updated in this PR, if this touches any of:
   - the IPC surface (`src/main/index.ts` + `src/preload/` + `docs/ARCHITECTURE.md`)

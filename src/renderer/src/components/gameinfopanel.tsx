@@ -5,17 +5,26 @@ import { getStrength } from '../utils/strength'
 import type { AiOptions } from '../types'
 
 type GameInfoPanelProps = {
+  /** The displayed position. Captures are derived from it, not from the move list. */
   position: string
+  /** Status text passed through to StatusPanel. */
   status: string
-  // true while Stockfish is picking a move, so the status can pulse
+  /** Whether Stockfish is picking a move, which pulses the status dot. */
   isThinking: boolean
+  /** The opponent's settings, shown back to the player as Elo and level name. */
   aiOptions: AiOptions
+  /** Full moves played so far, i.e. plies rounded up. */
   moveCount: number
 }
 
-// One side's capture tray: the pieces it has taken, plus its material edge if
-// it has one. Rendered as piece glyphs rather than a count so the shape of the
-// trade is readable at a glance.
+/**
+ * One side's capture tray: the pieces it has taken, plus its material edge.
+ *
+ * Rendered as piece glyphs rather than a count, so the shape of the trade -- a
+ * rook for two pieces, say -- is readable at a glance. The advantage is shown
+ * only on the side that actually holds it, so the two rows never contradict
+ * each other.
+ */
 const CaptureRow = ({
   glyphs,
   advantage
@@ -33,6 +42,7 @@ const CaptureRow = ({
   )
 }
 
+/** One label/value row in the Game panel. */
 const Field = ({ label, value }: { label: string; value: string }): React.JSX.Element => (
   <div className="flex items-baseline justify-between">
     <span className="text-base text-amber-100/85">{label}</span>
@@ -40,6 +50,13 @@ const Field = ({ label, value }: { label: string; value: string }): React.JSX.El
   </div>
 )
 
+/**
+ * The play screen's right-hand rail: status, captures, and game details.
+ *
+ * Occupies the same slot the EnginePanel does when analysing, and is built from
+ * the same Panel shell, so switching between the two screens does not change
+ * the shape of the layout.
+ */
 const GameInfoPanel = ({
   position,
   status,

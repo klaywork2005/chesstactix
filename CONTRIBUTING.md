@@ -133,7 +133,7 @@ Fix eval sign on Black's move in the engine panel
 ```
 
 [Conventional Commits](https://www.conventionalcommits.org/) prefixes (`feat:`,
-`fix:`, `docs:`) are welcome but not required. Use the body to explain *why* when
+`fix:`, `docs:`) are welcome but not required. Use the body to explain _why_ when
 the reason is not obvious from the diff.
 
 For pull requests:

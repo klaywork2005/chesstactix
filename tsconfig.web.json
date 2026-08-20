@@ -1,4 +1,9 @@
 {
+  // The renderer program: an ordinary DOM/React app with no Node access.
+  //
+  // src/preload/*.d.ts is included on purpose and is the one file that crosses
+  // the boundary: it is ambient-only (no runtime code), and it is what declares
+  // `window.api` so the renderer knows the IPC surface exists and is typed.
   "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
   "include": [
     "src/renderer/src/env.d.ts",
@@ -11,9 +16,9 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@renderer/*": [
-        "src/renderer/src/*"
-      ]
+      // Mirrors the alias in electron.vite.config.ts. Both are required: this
+      // one resolves the import for tsc, that one for the actual bundle.
+      "@renderer/*": ["src/renderer/src/*"]
     }
   }
 }

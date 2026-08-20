@@ -2,13 +2,26 @@ import { STRENGTH_LEVELS, MIN_LEVEL, MAX_LEVEL, getStrength } from '../utils/str
 import type { AiOptions, PlayerColor, StrengthLevel } from '../types'
 
 type GameSetupProps = {
+  /** The current selection. Owned by App, so it survives leaving this screen. */
   aiOptions: AiOptions
+  /** Called with the full next selection whenever either control changes. */
   onChange: (next: AiOptions) => void
+  /** Starts the game with the current selection. */
   onStart: () => void
 }
 
 const COLORS: PlayerColor[] = ['white', 'black']
 
+/**
+ * The pre-game screen: pick an engine strength and a side.
+ *
+ * Fully controlled -- it holds no state of its own, so the choices persist when
+ * the screen unmounts and are still selected on the next visit.
+ *
+ * The strength control is a slider *and* a row of clickable Elo ticks. The
+ * ticks make every rung reachable without dragging and keep the whole ladder
+ * visible at once, which a bare slider cannot do.
+ */
 const GameSetup = ({ aiOptions, onChange, onStart }: GameSetupProps): React.JSX.Element => {
   const strength = getStrength(aiOptions.level)
 

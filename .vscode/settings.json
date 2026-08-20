@@ -1,4 +1,6 @@
 {
+  // Pin the formatter per language so a differently-configured default cannot
+  // reformat files against .prettierrc.yaml and fail the lint step.
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },

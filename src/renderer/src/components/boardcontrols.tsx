@@ -1,17 +1,23 @@
 import BoardSizeSlider from './boardsizeslider'
 
 type BoardControlsProps = {
+  /** Whether there is an earlier position to step back to. */
   canGoBack: boolean
+  /** Whether there is a later position to step forward to. */
   canGoForward: boolean
+  /** Step back one ply. */
   onBack: () => void
+  /** Step forward one ply. */
   onForward: () => void
-  // the page's own destructive action -- "New Game" when playing, "Reset
-  // Board" when analyzing
+  /** The screen's own destructive action: `'New Game'` playing, `'Reset Board'` analysing. */
   actionLabel: string
+  /** Invoked by the action button. Not disabled by `disabled` -- see the component. */
   onAction: () => void
-  // how large the board is drawn, as a share of the space available to it
+  /** How large the board is drawn, as a share of the space available to it. */
   scale: number
+  /** Called as the size slider moves. */
   onScaleChange: (next: number) => void
+  /** Locks navigation while the engine owns the position. Defaults to `false`. */
   disabled?: boolean
 }
 
@@ -20,9 +26,17 @@ const BUTTON =
   'cursor-pointer hover:bg-neutral-800 hover:text-amber-100 ' +
   'disabled:pointer-events-none disabled:text-amber-100/20'
 
-// The slim bar directly under the board. Kept to icon-and-label buttons on a
-// single hairline rule so it reads as part of the board rather than a separate
-// panel competing with it.
+/**
+ * The slim control bar directly under the board.
+ *
+ * Kept to icon-and-label buttons on a single rule so it reads as part of the
+ * board rather than a separate panel competing with it.
+ *
+ * The action button is deliberately left enabled when `disabled` is set: the
+ * navigation buttons are locked while the engine is thinking, but starting a
+ * new game or resetting the board must always be possible -- that is the escape
+ * hatch if a search ever hangs.
+ */
 const BoardControls = ({
   canGoBack,
   canGoForward,

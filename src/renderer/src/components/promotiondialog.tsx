@@ -3,6 +3,8 @@ import { chessColumnToColumnIndex, chessRowToRowIndex, defaultPieces } from 'rea
 // Queen first: it is what nearly every promotion wants, so it sits nearest
 // the promoting square where the cursor already is.
 export const PROMOTION_PIECES = ['q', 'r', 'n', 'b'] as const
+
+/** A piece a pawn may promote to: queen, rook, knight, or bishop. */
 export type PromotionPiece = (typeof PROMOTION_PIECES)[number]
 
 const PIECE_NAMES: Record<PromotionPiece, string> = {
@@ -20,18 +22,29 @@ const BOARD_SQUARES = 8
 const SQUARE_PCT = 100 / BOARD_SQUARES
 
 type PromotionDialogProps = {
-  // the square the pawn is promoting onto, e.g. "e8"
+  /** The square the pawn is promoting onto, e.g. `'e8'`. */
   targetSquare: string
-  // the side doing the promoting, so the choices are shown in its own colour
+  /** The side doing the promoting, so the choices are drawn in its own colour. */
   color: 'w' | 'b'
+  /** Which way the board faces, which decides where the promotion rank is drawn. */
   boardOrientation: 'white' | 'black'
+  /** Called with the chosen piece. The caller is what actually plays the move. */
   onSelect: (piece: PromotionPiece) => void
+  /** Dismisses without promoting, leaving the move unplayed. */
   onCancel: () => void
 }
 
-// The choice of promotion piece, drawn as a column of pieces hanging off the
-// promotion square itself. Renders inside the board's own relatively
-// positioned container, so it lines up with the board at any size.
+/**
+ * The choice of promotion piece, drawn as a column hanging off the promotion
+ * square itself.
+ *
+ * Renders inside the board's own relatively-positioned container and sizes
+ * itself in percentages, so it stays aligned at any board size without reading
+ * the DOM.
+ *
+ * While this is open the move has **not** been played -- the caller holds it
+ * pending, and only `onSelect` commits it.
+ */
 const PromotionDialog = ({
   targetSquare,
   color,

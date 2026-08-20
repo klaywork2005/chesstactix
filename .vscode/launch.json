@@ -1,4 +1,8 @@
 {
+  // Debugging an Electron app means debugging two processes at once. "Debug
+  // All" is the one to run: it launches the main process under the Node
+  // debugger and attaches Chrome DevTools to the renderer over the remote
+  // debugging port, so breakpoints work on both sides of the IPC boundary.
   "version": "0.2.0",
   "configurations": [
     {
@@ -16,6 +20,9 @@
       }
     },
     {
+      // Hidden from the picker on purpose: attaching before the main process
+      // has opened the port fails, so this is only ever launched as the second
+      // half of the compound below.
       "name": "Debug Renderer Process",
       "port": 9222,
       "request": "attach",

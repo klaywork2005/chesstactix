@@ -1,19 +1,28 @@
 type PanelProps = {
-  // the small tracked-out heading. Optional: a caller that wants to draw the
-  // whole header row itself can omit it and pass `trailing` alone.
+  /**
+   * The small tracked-out heading. Optional: a caller that wants to draw the
+   * whole header row itself can omit it and pass `trailing` alone.
+   */
   label?: string
-  // right-aligned content on the label rule (a count, an eval, ...). With no
-  // `label` it is given the full width of the row instead.
+  /**
+   * Right-aligned content on the label rule -- a count, an eval, a depth. Given
+   * the full width of the row when `label` is omitted.
+   */
   trailing?: React.ReactNode
+  /** The panel body, laid out as a column below the rule. */
   children: React.ReactNode
+  /** Extra classes for the section itself, typically `min-h-0 flex-1` to let it scroll. */
   className?: string
 }
 
-// The one shared shell for every side-rail section. Deliberately not a card:
-// no border box, no fill, no rounding -- just a small tracked-out label above
-// a hairline rule, sitting directly on the page background. Every rail on every
-// screen is built from this so the app reads as one surface rather than a
-// scattering of floating panels.
+/**
+ * The shared shell for every side-rail section.
+ *
+ * Deliberately not a card: no border box, no fill, no rounding -- just a small
+ * tracked-out label above a hairline rule, sitting directly on the page
+ * background. Every rail on every screen is built from this, so the app reads
+ * as one surface rather than a scattering of floating panels.
+ */
 const Panel = ({ label, trailing, children, className = '' }: PanelProps): React.JSX.Element => {
   return (
     <section className={`flex min-h-0 flex-col ${className}`}>

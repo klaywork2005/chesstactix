@@ -3,7 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <title>ChessTactix</title>
-    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <!--
+      Content Security Policy. The renderer is a privileged context, so this is
+      a real defence rather than a formality: 'self' only for scripts, no
+      remote origins, and no 'unsafe-eval'. 'unsafe-inline' is permitted for
+      styles alone, because Tailwind and the board library both set inline
+      style attributes. data: is allowed for images so bundled SVG pieces load.
+
+      https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
+    -->
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
@@ -11,6 +19,7 @@
   </head>
 
   <body>
+    <!-- Mounted by src/renderer/src/main.tsx. -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
